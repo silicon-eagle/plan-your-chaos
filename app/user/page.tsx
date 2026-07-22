@@ -14,7 +14,6 @@ export default async function UserPage() {
     <main className="user-page">
       <section className="pixel-border user-panel" aria-labelledby="user-heading">
         <h1 id="user-heading">Choose User</h1>
-        <p>Currently using Plan Your Chaos as {activeUser.name}.</p>
 
         <div className="user-list">
           {householdUsers.map((user) => {
