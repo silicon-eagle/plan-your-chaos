@@ -1,7 +1,7 @@
-import { and, asc, eq, gt, lt } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, lt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { events, users } from "@/db/schema";
+import { eventAttendants, events, users } from "@/db/schema";
 import { parseDate, parsePositiveInteger } from "./validation";
 
 function errorResponse(message: string, status = 400) {
@@ -10,12 +10,11 @@ function errorResponse(message: string, status = 400) {
 
 export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams;
-  const userId = parsePositiveInteger(searchParams.get("userId"));
   const from = parseDate(searchParams.get("from"));
   const to = parseDate(searchParams.get("to"));
 
-  if (!userId || !from || !to) {
-    return errorResponse("userId, from, and to are required and must be valid");
+  if (!from || !to) {
+    return errorResponse("from and to are required and must be valid");
   }
 
   if (from >= to) {
@@ -27,14 +26,41 @@ export async function GET(request: Request) {
     .from(events)
     .where(
       and(
-        eq(events.userId, userId),
         lt(events.startsAt, to),
         gt(events.endsAt, from),
       ),
     )
     .orderBy(asc(events.startsAt));
 
-  return NextResponse.json({ events: matchingEvents });
+  if (matchingEvents.length === 0) {
+    return NextResponse.json({ events: [] });
+  }
+
+  const attendanceRows = await db
+    .select({
+      eventId: eventAttendants.eventId,
+      id: users.id,
+      name: users.name,
+      createdAt: users.createdAt,
+    })
+    .from(eventAttendants)
+    .innerJoin(users, eq(eventAttendants.userId, users.id))
+    .where(
+      inArray(
+        eventAttendants.eventId,
+        matchingEvents.map(({ id }) => id),
+      ),
+    )
+    .orderBy(asc(users.name));
+
+  return NextResponse.json({
+    events: matchingEvents.map((event) => ({
+      ...event,
+      attendants: attendanceRows
+        .filter(({ eventId }) => eventId === event.id)
+        .map(({ id, name, createdAt }) => ({ id, name, createdAt })),
+    })),
+  });
 }
 
 export async function POST(request: Request) {

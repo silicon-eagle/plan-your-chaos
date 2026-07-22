@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 describe("GET /api/events", () => {
-  it("returns events owned by the user that overlap the timeframe", async () => {
+  it("returns household events and attendants that overlap the timeframe", async () => {
     const event = {
       id: 1,
       title: "Dinner",
@@ -26,11 +26,24 @@ describe("GET /api/events", () => {
     const orderBy = vi.fn().mockResolvedValue([event]);
     const where = vi.fn(() => ({ orderBy }));
     const from = vi.fn(() => ({ where }));
-    database.select.mockReturnValue({ from });
+    database.select.mockReturnValueOnce({ from });
+
+    const attendant = {
+      eventId: 1,
+      id: 2,
+      name: "Eve",
+      createdAt: new Date("2026-07-01T00:00:00.000Z"),
+    };
+    const attendanceOrderBy = vi.fn().mockResolvedValue([attendant]);
+    const attendanceWhere = vi.fn(() => ({ orderBy: attendanceOrderBy }));
+    const innerJoin = vi.fn(() => ({ where: attendanceWhere }));
+    database.select.mockReturnValueOnce({
+      from: vi.fn(() => ({ innerJoin })),
+    });
 
     const response = await GET(
       new Request(
-        "http://localhost/api/events?userId=1&from=2026-07-22T17:00:00.000Z&to=2026-07-22T20:00:00.000Z",
+        "http://localhost/api/events?from=2026-07-22T17:00:00.000Z&to=2026-07-22T20:00:00.000Z",
       ),
     );
 
@@ -41,6 +54,13 @@ describe("GET /api/events", () => {
           ...event,
           startsAt: event.startsAt.toISOString(),
           endsAt: event.endsAt.toISOString(),
+          attendants: [
+            {
+              id: attendant.id,
+              name: attendant.name,
+              createdAt: attendant.createdAt.toISOString(),
+            },
+          ],
         },
       ],
     });
@@ -49,7 +69,7 @@ describe("GET /api/events", () => {
   it("rejects an invalid timeframe", async () => {
     const response = await GET(
       new Request(
-        "http://localhost/api/events?userId=1&from=2026-07-22T20:00:00.000Z&to=2026-07-22T17:00:00.000Z",
+        "http://localhost/api/events?from=2026-07-22T20:00:00.000Z&to=2026-07-22T17:00:00.000Z",
       ),
     );
 
