@@ -29,3 +29,5 @@ provide `DATABASE_URL` to override the component variables.
 - `pnpm db:seed` - seed development data
 - `pnpm db:studio` - open Drizzle Studio
 - `docker compose down` - stop PostgreSQL
+- `docker compose down -v` - stop PostgreSQL and delete the database
+- `docker compose up -d` - start docker and PostgreSQL
