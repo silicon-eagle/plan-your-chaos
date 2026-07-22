@@ -121,6 +121,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     .where(eq(events.id, eventId))
     .returning();
 
+  if (!updatedEvent) {
+    return errorResponse("Event not found", 404);
+  }
+
   return NextResponse.json({ event: updatedEvent });
 }
 

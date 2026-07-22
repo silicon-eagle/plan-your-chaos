@@ -107,6 +107,36 @@ describe("PATCH /api/events/:id", () => {
 
     expect(response.status).toBe(404);
   });
+
+  it("returns 404 when the event disappears during the update", async () => {
+    database.select.mockReturnValue(
+      mockEventLookup([
+        {
+          id: 12,
+          title: "Dinner",
+          startsAt: new Date("2026-07-22T18:00:00.000Z"),
+          endsAt: new Date("2026-07-22T19:00:00.000Z"),
+        },
+      ]),
+    );
+
+    const returning = vi.fn().mockResolvedValue([]);
+    const where = vi.fn(() => ({ returning }));
+    database.update.mockReturnValue({
+      set: vi.fn(() => ({ where })),
+    });
+
+    const response = await PATCH(
+      new Request("http://localhost/api/events/12", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "Family dinner" }),
+      }),
+      { params: Promise.resolve({ id: "12" }) },
+    );
+
+    expect(response.status).toBe(404);
+  });
 });
 
 describe("DELETE /api/events/:id", () => {
