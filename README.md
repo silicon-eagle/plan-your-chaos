@@ -26,5 +26,6 @@ provide `DATABASE_URL` to override the component variables.
 - `pnpm build` - create a production build
 - `pnpm db:generate` - generate database migrations
 - `pnpm db:migrate` - apply database migrations
+- `pnpm db:seed` - seed development data
 - `pnpm db:studio` - open Drizzle Studio
 - `docker compose down` - stop PostgreSQL
