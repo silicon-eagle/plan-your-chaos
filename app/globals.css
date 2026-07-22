@@ -5,6 +5,9 @@
   --gold: #deab15;
   --yellow: #f2c900;
   --highlight: #f5e580;
+  --light-purple: #d8c7ff;
+  --pixel-art-scale: 2;
+  --header-height: calc(64px * var(--pixel-art-scale) + 2rem);
 }
 
 * {
@@ -12,20 +15,226 @@
 }
 
 body {
+  min-height: 100vh;
   margin: 0;
   background: var(--background);
-  color: var(--highlight);
-  font-family: var(--font-pixelify-sans), sans-serif;
+  color: var(--light-purple);
+  font-family: var(--font-default), sans-serif;
+  font-size: 16px;
+  font-synthesis: none;
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: none;
 }
 
 main {
   display: grid;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--header-height));
   place-items: center;
+  padding: 2rem;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 10vw, 6rem);
-  font-weight: 600;
+  font-size: 32px;
+  font-weight: 400;
+}
+
+a {
+  color: inherit;
+}
+
+.pixel-art {
+  image-rendering: pixelated;
+}
+
+.site-header {
+  position: relative;
+  display: flex;
+  min-height: var(--header-height);
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1rem 1.5rem;
+  background: var(--background);
+}
+
+.site-title {
+  display: block;
+  line-height: 0;
+  text-decoration: none;
+}
+
+.site-title img {
+  width: calc(176px * var(--pixel-art-scale));
+  height: calc(64px * var(--pixel-art-scale));
+}
+
+.desktop-navigation,
+.mobile-navigation {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.desktop-navigation a,
+.mobile-navigation a {
+  padding: 0.5rem 0.75rem;
+  color: var(--light-purple);
+  font-size: 20px;
+  text-decoration: none;
+}
+
+.site-header a:focus-visible,
+.menu-button:focus-visible {
+  outline: 3px solid var(--light-purple);
+  outline-offset: 3px;
+}
+
+.menu-button {
+  display: none;
+  width: 3rem;
+  height: 3rem;
+  padding: 0.55rem;
+  background: transparent;
+  box-shadow: 3px 3px 0 var(--background);
+  cursor: pointer;
+}
+
+.menu-button span {
+  display: block;
+  height: 3px;
+  margin: 4px 0;
+  background: var(--light-purple);
+}
+
+#mobile-navigation {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  right: 0;
+  left: 0;
+  background: var(--background);
+  box-shadow: 0 4px 0 var(--primary);
+}
+
+.mobile-navigation {
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.active-user-link {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  color: var(--light-purple);
+  font-size: 20px;
+  text-decoration: none;
+}
+
+.mobile-user {
+  margin: 0 1rem 1rem;
+}
+
+.user-page {
+  align-items: start;
+  padding-top: 4rem;
+}
+
+.user-panel {
+  width: min(100%, 36rem);
+  padding: 2rem;
+  background: transparent;
+}
+
+.user-panel h1 {
+  font-size: 48px;
+}
+
+.user-panel p {
+  font-size: 18px;
+}
+
+.user-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.user-button {
+  display: flex;
+  width: 100%;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  color: var(--light-purple);
+  font: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.user-button:hover:not(:disabled),
+.user-button:focus-visible {
+  background: transparent;
+}
+
+.user-button:focus-visible {
+  outline: 3px solid var(--light-purple);
+  outline-offset: 3px;
+}
+
+.user-button:disabled {
+  cursor: default;
+}
+
+.user-button span {
+  font-size: 14px;
+}
+
+.pixel-border,
+button {
+  border: calc(2px * var(--pixel-art-scale)) solid transparent;
+  border-image: url("/images/border.png") 2 /
+    calc(2px * var(--pixel-art-scale)) stretch;
+  image-rendering: pixelated;
+}
+
+.pixel-border-selected,
+.pixel-border-interactive:hover,
+.pixel-border-interactive:focus-visible,
+.pixel-border-interactive[aria-current="page"],
+.pixel-border-interactive[aria-pressed="true"],
+.pixel-border-interactive[aria-expanded="true"],
+button:hover:not(:disabled),
+button:focus-visible,
+button[aria-pressed="true"],
+button[aria-expanded="true"] {
+  border-image: url("/images/border-selected.png") 2 fill /
+    calc(2px * var(--pixel-art-scale)) stretch;
+  image-rendering: pixelated;
+}
+
+@media (max-width: 42rem) {
+  h1 {
+    font-size: 40px;
+  }
+
+  .user-panel h1 {
+    font-size: 32px;
+  }
+
+  .site-title img {
+    width: calc(64px * var(--pixel-art-scale));
+  }
+
+  .desktop-navigation {
+    display: none;
+  }
+
+  .desktop-user {
+    display: none;
+  }
+
+  .menu-button {
+    display: block;
+  }
 }

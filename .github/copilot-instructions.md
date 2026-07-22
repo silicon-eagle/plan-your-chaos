@@ -46,10 +46,11 @@ Only use these colours unless there is a compelling reason not to.
 | Gold       | `#DEAB15` |
 | Yellow     | `#F2C900` |
 | Highlight  | `#F5E580` |
+| Light Purple | `#D8C7FF` |
 
 ## Typography
 
-Use **Pixelify Sans** as the primary UI font.
+Use **Silkscreen** as the primary UI font.
 
 Optimise for readability. Decorative fonts may be introduced later for branding or headings, but should never reduce usability.
 

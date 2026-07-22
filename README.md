@@ -19,6 +19,18 @@ The application builds its connection URL from the PostgreSQL environment
 variables and fails at startup if any are missing. Production environments can
 provide `DATABASE_URL` to override the component variables.
 
+## Colour Palette
+
+| Name         | Colour    |
+| ------------ | --------- |
+| Background   | `#1A1026` |
+| Surface      | `#2E1852` |
+| Primary      | `#4B2E83` |
+| Gold         | `#DEAB15` |
+| Yellow       | `#F2C900` |
+| Highlight    | `#F5E580` |
+| Light Purple | `#D8C7FF` |
+
 ## Commands
 
 - `pnpm test` - run unit tests
