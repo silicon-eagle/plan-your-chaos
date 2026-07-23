@@ -86,7 +86,6 @@ export function Header({
             alt="Plan Your Chaos"
             width={176}
             height={64}
-            priority
             unoptimized
           />
         </picture>

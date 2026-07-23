@@ -8,6 +8,7 @@ const defaultFont = localFont({
   src: "./fonts/Silkscreen-Regular.ttf",
   variable: "--font-default",
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
