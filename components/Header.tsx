@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PixelButton } from "@/components/PixelButton/PixelButton";
 
 const navigationItems = [
   { href: "/", label: "Calendar" },
@@ -37,15 +38,14 @@ export function Header({ activeUserName }: HeaderProps) {
     return (
       <nav className={className} aria-label="Main navigation">
         {navigationItems.map(({ href, label }) => (
-          <Link
+          <PixelButton
             key={href}
-            className="pixel-border pixel-border-interactive"
             href={href}
-            aria-current={pathname === href ? "page" : undefined}
+            selected={pathname === href}
             onClick={() => setMenuOpen(false)}
           >
             {label}
-          </Link>
+          </PixelButton>
         ))}
       </nav>
     );
@@ -53,15 +53,15 @@ export function Header({ activeUserName }: HeaderProps) {
 
   function renderActiveUser(className: string) {
     return (
-      <Link
-        className={`pixel-border pixel-border-interactive ${className}`}
+      <PixelButton
+        className={className}
         href="/user"
         aria-label={`User: ${activeUserName}`}
-        aria-current={pathname === "/user" ? "page" : undefined}
+        selected={pathname === "/user"}
         onClick={() => setMenuOpen(false)}
       >
         User: {activeUserName}
-      </Link>
+      </PixelButton>
     );
   }
 
@@ -85,9 +85,10 @@ export function Header({ activeUserName }: HeaderProps) {
       {renderNavigation("desktop-navigation")}
       {renderActiveUser("active-user-link desktop-user")}
 
-      <button
-        className="pixel-border pixel-border-interactive menu-button"
+      <PixelButton
+        className="menu-button"
         type="button"
+        selected={menuOpen}
         aria-expanded={menuOpen}
         aria-controls="mobile-navigation"
         aria-label={menuOpen ? "Close navigation" : "Open navigation"}
@@ -96,7 +97,7 @@ export function Header({ activeUserName }: HeaderProps) {
         <span />
         <span />
         <span />
-      </button>
+      </PixelButton>
 
       {menuOpen && (
         <div id="mobile-navigation">

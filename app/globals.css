@@ -83,8 +83,7 @@ a {
   text-decoration: none;
 }
 
-.site-header a:focus-visible,
-.menu-button:focus-visible {
+.site-title:focus-visible {
   outline: 3px solid var(--light-purple);
   outline-offset: 3px;
 }
@@ -172,16 +171,6 @@ a {
   cursor: pointer;
 }
 
-.user-button:hover:not(:disabled),
-.user-button:focus-visible {
-  background: transparent;
-}
-
-.user-button:focus-visible {
-  outline: 3px solid var(--light-purple);
-  outline-offset: 3px;
-}
-
 .user-button:disabled {
   cursor: default;
 }
@@ -190,25 +179,9 @@ a {
   font-size: 14px;
 }
 
-.pixel-border,
-button {
+.pixel-border {
   border: calc(2px * var(--pixel-art-scale)) solid transparent;
   border-image: url("/images/border.png") 2 /
-    calc(2px * var(--pixel-art-scale)) stretch;
-  image-rendering: pixelated;
-}
-
-.pixel-border-selected,
-.pixel-border-interactive:hover,
-.pixel-border-interactive:focus-visible,
-.pixel-border-interactive[aria-current="page"],
-.pixel-border-interactive[aria-pressed="true"],
-.pixel-border-interactive[aria-expanded="true"],
-button:hover:not(:disabled),
-button:focus-visible,
-button[aria-pressed="true"],
-button[aria-expanded="true"] {
-  border-image: url("/images/border-selected.png") 2 fill /
     calc(2px * var(--pixel-art-scale)) stretch;
   image-rendering: pixelated;
 }

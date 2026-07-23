@@ -2,6 +2,7 @@ import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getActiveUser } from "@/lib/auth/active-users";
+import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { selectActiveUser } from "./actions";
 
 export default async function UserPage() {
@@ -22,15 +23,15 @@ export default async function UserPage() {
             return (
               <form key={user.id} action={selectActiveUser}>
                 <input type="hidden" name="name" value={user.name} />
-                <button
-                  className={`pixel-border pixel-border-interactive user-button${isActive ? " pixel-border-selected" : ""}`}
+                <PixelButton
+                  className="user-button"
                   type="submit"
-                  aria-pressed={isActive}
+                  selected={isActive}
                   disabled={isActive}
                 >
                   {user.name}
                   {isActive && <span>Active</span>}
-                </button>
+                </PixelButton>
               </form>
             );
           })}

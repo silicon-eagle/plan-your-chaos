@@ -1,0 +1,31 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: calc(2px * var(--pixel-art-scale)) solid transparent;
+  border-image: url("/images/border.png") 2 /
+    calc(2px * var(--pixel-art-scale)) stretch;
+  background: transparent;
+  color: var(--light-purple);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  image-rendering: pixelated;
+}
+
+.button:hover:not(:disabled),
+.button:focus-visible,
+.selected {
+  border-image: url("/images/border-selected.png") 2 fill /
+    calc(2px * var(--pixel-art-scale)) stretch;
+  image-rendering: pixelated;
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--light-purple);
+  outline-offset: 3px;
+}
+
+.button:disabled {
+  cursor: default;
+}
