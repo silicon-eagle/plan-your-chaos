@@ -38,6 +38,7 @@ export async function GET(_request: Request, context: RouteContext) {
     .select({
       id: users.id,
       name: users.name,
+      avatarPath: users.avatarPath,
       createdAt: users.createdAt,
     })
     .from(eventAttendants)
@@ -93,6 +94,7 @@ export async function POST(request: Request, context: RouteContext) {
     .select({
       id: users.id,
       name: users.name,
+      avatarPath: users.avatarPath,
       createdAt: users.createdAt,
     })
     .from(users)

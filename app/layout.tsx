@@ -25,7 +25,10 @@ export default async function RootLayout({
   return (
     <html lang="en" className={defaultFont.variable}>
       <body>
-        <Header activeUserName={activeUser.name} />
+        <Header
+          activeUserName={activeUser.name}
+          activeUserAvatarPath={activeUser.avatarPath}
+        />
         {children}
       </body>
     </html>

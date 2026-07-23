@@ -8,7 +8,12 @@ vi.mock("next/navigation", () => ({
 
 describe("Header", () => {
   it("renders the page links and marks the current page", () => {
-    render(<Header activeUserName="Adam" />);
+    render(
+      <Header
+        activeUserName="Adam"
+        activeUserAvatarPath="/images/userT.png"
+      />,
+    );
 
     expect(screen.getByRole("img", { name: "Plan Your Chaos" })).toHaveClass(
       "pixel-art",
@@ -27,7 +32,12 @@ describe("Header", () => {
   });
 
   it("opens and closes the mobile navigation", () => {
-    render(<Header activeUserName="Adam" />);
+    render(
+      <Header
+        activeUserName="Adam"
+        activeUserAvatarPath="/images/userT.png"
+      />,
+    );
 
     const menuButton = screen.getByRole("button", {
       name: "Open navigation",

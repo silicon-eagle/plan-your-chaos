@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
+import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 
 const navigationItems = [
   { href: "/", label: "Calendar" },
@@ -13,9 +14,13 @@ const navigationItems = [
 
 type HeaderProps = {
   activeUserName: string;
+  activeUserAvatarPath: string | null;
 };
 
-export function Header({ activeUserName }: HeaderProps) {
+export function Header({
+  activeUserName,
+  activeUserAvatarPath,
+}: HeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -60,7 +65,12 @@ export function Header({ activeUserName }: HeaderProps) {
         selected={pathname === "/user"}
         onClick={() => setMenuOpen(false)}
       >
-        User: {activeUserName}
+        User:
+        <UserAvatar
+          name={activeUserName}
+          src={activeUserAvatarPath}
+          decorative
+        />
       </PixelButton>
     );
   }

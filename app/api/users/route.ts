@@ -8,6 +8,7 @@ export async function GET() {
     .select({
       id: users.id,
       name: users.name,
+      avatarPath: users.avatarPath,
       createdAt: users.createdAt,
     })
     .from(users)

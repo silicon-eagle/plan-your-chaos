@@ -13,6 +13,7 @@ import {
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
+  avatarPath: text("avatar_path"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

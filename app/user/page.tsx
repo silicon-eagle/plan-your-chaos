@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getActiveUser } from "@/lib/auth/active-users";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
+import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import { selectActiveUser } from "./actions";
 
 export default async function UserPage() {
@@ -29,8 +30,15 @@ export default async function UserPage() {
                   selected={isActive}
                   disabled={isActive}
                 >
-                  {user.name}
-                  {isActive && <span>Active</span>}
+                  <span className="user-identity">
+                    <UserAvatar
+                      name={user.name}
+                      src={user.avatarPath}
+                      decorative
+                    />
+                    <span>{user.name}</span>
+                  </span>
+                  {isActive && <span>[A]</span>}
                 </PixelButton>
               </form>
             );

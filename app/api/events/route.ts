@@ -41,6 +41,7 @@ export async function GET(request: Request) {
       eventId: eventAttendants.eventId,
       id: users.id,
       name: users.name,
+      avatarPath: users.avatarPath,
       createdAt: users.createdAt,
     })
     .from(eventAttendants)
@@ -58,7 +59,12 @@ export async function GET(request: Request) {
       ...event,
       attendants: attendanceRows
         .filter(({ eventId }) => eventId === event.id)
-        .map(({ id, name, createdAt }) => ({ id, name, createdAt })),
+        .map(({ id, name, avatarPath, createdAt }) => ({
+          id,
+          name,
+          avatarPath,
+          createdAt,
+        })),
     })),
   });
 }

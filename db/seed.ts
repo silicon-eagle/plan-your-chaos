@@ -1,21 +1,21 @@
 import "dotenv/config";
-import { inArray } from "drizzle-orm";
-import { closeDatabase, db } from "./index";
+import { closeDatabase, db } from "./client";
 import { users } from "./schema";
 
-const seedUsers = [{ name: "Tim" }, { name: "Veerle" }];
+const seedUsers = [
+  { name: "Tim", avatarPath: "/images/userT.png" },
+  { name: "Veerle", avatarPath: "/images/userV.png" },
+];
 
 export async function seed() {
-  const names = seedUsers.map(({ name }) => name);
-  const existingUsers = await db
-    .select({ name: users.name })
-    .from(users)
-    .where(inArray(users.name, names));
-  const existingNames = new Set(existingUsers.map(({ name }) => name));
-  const missingUsers = seedUsers.filter(({ name }) => !existingNames.has(name));
-
-  if (missingUsers.length > 0) {
-    await db.insert(users).values(missingUsers);
+  for (const user of seedUsers) {
+    await db
+      .insert(users)
+      .values(user)
+      .onConflictDoUpdate({
+        target: users.name,
+        set: { avatarPath: user.avatarPath },
+      });
   }
 }
 
