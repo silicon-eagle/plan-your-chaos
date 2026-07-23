@@ -15,7 +15,6 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
   const [visibleMonth, setVisibleMonth] = useState(
     () => new Date(initialDate.getFullYear(), initialDate.getMonth(), 1),
   );
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const days = getMonthCalendar(
     visibleMonth.getFullYear(),
     visibleMonth.getMonth(),
@@ -26,10 +25,6 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
       (current) =>
         new Date(current.getFullYear(), current.getMonth() + offset, 1),
     );
-  }
-
-  function selectDate(date: Date) {
-    setSelectedDate(date);
   }
 
   return (
@@ -48,11 +43,7 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
         />
       </header>
 
-      <CalendarGrid
-        days={days}
-        selectedDate={selectedDate}
-        onDayClick={selectDate}
-      />
+      <CalendarGrid days={days} />
     </section>
   );
 }

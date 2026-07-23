@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { getMonthCalendar } from "@/lib/calendar/utils";
 import { CalendarGrid } from "./CalendarGrid";
 
@@ -11,32 +11,14 @@ describe("CalendarGrid", () => {
     weekdays.forEach((weekday) => {
       expect(screen.getByText(weekday)).toBeInTheDocument();
     });
-    expect(screen.getAllByRole("button")).toHaveLength(28);
+    expect(screen.getAllByRole("link")).toHaveLength(28);
   });
 
-  it("marks and selects the selected date", () => {
-    const onDayClick = vi.fn();
-    const selectedDate = new Date(2021, 1, 15);
+  it("links each day to its date page", () => {
+    render(<CalendarGrid days={getMonthCalendar(2021, 1)} />);
 
-    render(
-      <CalendarGrid
-        days={getMonthCalendar(2021, 1)}
-        selectedDate={selectedDate}
-        onDayClick={onDayClick}
-      />,
-    );
-
-    const selectedDay = screen
-      .getAllByRole("button")
-      .find((button) => button.getAttribute("aria-pressed") === "true");
-
-    expect(selectedDay).toBeDefined();
-    fireEvent.click(selectedDay!);
-    expect(onDayClick).toHaveBeenCalledWith(
-      expect.objectContaining({
-        getTime: expect.any(Function),
-      }),
-    );
-    expect(onDayClick.mock.calls[0][0].getTime()).toBe(selectedDate.getTime());
+    expect(
+      screen.getByRole("link", { name: "Monday, 15 February 2021" }),
+    ).toHaveAttribute("href", "/day/2021-02-15");
   });
 });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getMonthCalendar } from "./utils";
+import { formatDateKey, getMonthCalendar, parseDateKey } from "./utils";
 
 function expectDate(date: Date, year: number, month: number, day: number) {
   expect([
@@ -24,6 +24,23 @@ describe("getMonthCalendar", () => {
     expectDate(days.at(-1)!.date, 2026, 1, 1);
     expect(days.filter(({ isCurrentMonth }) => isCurrentMonth)).toHaveLength(
       31,
+    );
+  });
+
+  describe("calendar date keys", () => {
+    it("formats and parses a calendar date", () => {
+      const date = new Date(2026, 0, 15);
+
+      expect(formatDateKey(date)).toBe("2026-01-15");
+      expect(parseDateKey("2026-01-15")).not.toBeNull();
+      expectDate(parseDateKey("2026-01-15")!, 2026, 0, 15);
+    });
+
+    it.each(["2026-1-15", "2026-02-29", "not-a-date"])(
+      "rejects invalid date key %s",
+      (value) => {
+        expect(parseDateKey(value)).toBeNull();
+      },
     );
   });
 

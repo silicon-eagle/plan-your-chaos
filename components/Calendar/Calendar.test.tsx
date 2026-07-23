@@ -22,14 +22,12 @@ describe("Calendar", () => {
     ).toBeInTheDocument();
   });
 
-  it("marks a selected date", () => {
+  it("links dates to their day pages", () => {
     render(<Calendar initialDate={new Date(2026, 0, 15)} />);
 
-    const day = screen.getByRole("button", {
+    const day = screen.getByRole("link", {
       name: "Thursday, 15 January 2026",
     });
-    fireEvent.click(day);
-
-    expect(day).toHaveAttribute("aria-pressed", "true");
+    expect(day).toHaveAttribute("href", "/day/2026-01-15");
   });
 });
