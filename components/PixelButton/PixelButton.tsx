@@ -26,6 +26,7 @@ function getClassName(className: string | undefined, selected: boolean) {
 
 export function PixelButton(props: PixelButtonProps) {
   const selected = props.selected ?? false;
+  const hasSelectedState = props.selected !== undefined;
 
   if ("href" in props && props.href !== undefined) {
     const { children, className, ...linkProps } = props;
@@ -49,7 +50,10 @@ export function PixelButton(props: PixelButtonProps) {
     <button
       {...buttonProps}
       className={getClassName(className, selected)}
-      aria-pressed={buttonProps["aria-pressed"] ?? selected}
+      aria-pressed={
+        buttonProps["aria-pressed"] ??
+        (hasSelectedState ? selected : undefined)
+      }
     >
       {children}
     </button>

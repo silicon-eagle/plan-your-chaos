@@ -1,0 +1,25 @@
+.day {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0.5rem;
+  font-size: 18px;
+}
+
+.outsideMonth {
+  opacity: 0.45;
+}
+
+.day.today {
+  color: var(--yellow);
+}
+
+@media (max-width: 42rem) {
+  .day {
+    padding: 0.3rem;
+    font-size: 14px;
+  }
+}
