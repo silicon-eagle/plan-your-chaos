@@ -11,13 +11,13 @@ type CalendarNavButtonProps = Omit<
 
 const buttonImages = {
   previous: {
-    default: "/images/buttons/PrevBtn.png",
-    hover: "/images/buttons/PrevBtn-hover.png",
+    default: "/images/buttons/prevBtn.png",
+    hover: "/images/buttons/prevBtn-hover.png",
     label: "Previous month",
   },
   next: {
-    default: "/images/buttons/NextBtn.png",
-    hover: "/images/buttons/NextBtn-hover.png",
+    default: "/images/buttons/nextBtn.png",
+    hover: "/images/buttons/nextBtn-hover.png",
     label: "Next month",
   },
 } as const;
