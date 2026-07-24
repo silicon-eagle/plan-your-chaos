@@ -1,8 +1,9 @@
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { icons, users } from "@/db/schema";
 import { getActiveUser } from "@/lib/auth/active-users";
 import { formatDateKey, parseDateKey } from "@/lib/calendar/utils";
+import { chooseRandomIcon } from "@/lib/events/icons";
 import { EventForm } from "./EventForm";
 import styles from "../events.module.css";
 
@@ -16,7 +17,7 @@ export default async function NewEventPage({
   const { date } = await searchParams;
   const requestedDate = typeof date === "string" ? parseDateKey(date) : null;
   const initialDate = formatDateKey(requestedDate ?? new Date());
-  const [activeUser, householdUsers] = await Promise.all([
+  const [activeUser, householdUsers, eventIcons] = await Promise.all([
     getActiveUser(),
     db
       .select({
@@ -26,7 +27,16 @@ export default async function NewEventPage({
       })
       .from(users)
       .orderBy(asc(users.name)),
+    db
+      .select({
+        id: icons.id,
+        name: icons.name,
+        fileName: icons.fileName,
+      })
+      .from(icons)
+      .orderBy(asc(icons.name)),
   ]);
+  const defaultIcon = chooseRandomIcon(eventIcons);
 
   return (
     <main className={styles.page}>
@@ -39,6 +49,8 @@ export default async function NewEventPage({
           initialDate={initialDate}
           users={householdUsers}
           activeUserId={activeUser.id}
+          icons={eventIcons}
+          defaultIconId={defaultIcon.id}
         />
       </section>
     </main>

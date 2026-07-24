@@ -2,6 +2,7 @@ import { and, asc, eq, gt, inArray, lt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
+import { resolveEventIconId } from "@/lib/events/icons";
 import { parseDate, parsePositiveInteger } from "./validation";
 
 function errorResponse(message: string, status = 400) {
@@ -122,6 +123,12 @@ export async function POST(request: Request) {
     return errorResponse("User not found", 404);
   }
 
+  const iconId = await resolveEventIconId(input.iconId);
+
+  if (!iconId) {
+    return errorResponse("iconId must reference an existing icon");
+  }
+
   const [createdEvent] = await db
     .insert(events)
     .values({
@@ -131,6 +138,7 @@ export async function POST(request: Request) {
       allDay,
       userId,
       notes,
+      iconId,
     })
     .returning();
 

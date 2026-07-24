@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const database = vi.hoisted(() => ({
   insert: vi.fn(),
@@ -6,12 +6,17 @@ const database = vi.hoisted(() => ({
 }));
 
 vi.mock("@/db", () => ({ db: database }));
+vi.mock("server-only", () => ({}));
 
 import { GET, POST } from "./route";
 
 beforeEach(() => {
   database.insert.mockReset();
   database.select.mockReset();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("GET /api/events", () => {
@@ -79,10 +84,15 @@ describe("GET /api/events", () => {
 
 describe("POST /api/events", () => {
   it("creates an event for an existing user", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
     const limit = vi.fn().mockResolvedValue([{ id: 1 }]);
     const where = vi.fn(() => ({ limit }));
     const from = vi.fn(() => ({ where }));
-    database.select.mockReturnValue({ from });
+    database.select
+      .mockReturnValueOnce({ from })
+      .mockReturnValueOnce({
+        from: vi.fn().mockResolvedValue([{ id: 4 }, { id: 7 }]),
+      });
 
     const createdEvent = { id: 1, title: "Dinner", userId: 1 };
     const returning = vi.fn().mockResolvedValue([createdEvent]);
@@ -110,6 +120,7 @@ describe("POST /api/events", () => {
         userId: 1,
         allDay: false,
         notes: null,
+        iconId: 4,
       }),
     );
   });

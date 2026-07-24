@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
 import { getActiveUser } from "@/lib/auth/active-users";
+import { resolveEventIconId } from "@/lib/events/icons";
 
 export type CreateEventState = {
   error: string | null;
@@ -60,6 +61,12 @@ export async function createEvent(
     }
   }
 
+  const iconId = await resolveEventIconId(formData.get("iconId"));
+
+  if (!iconId) {
+    return { error: "Select a valid event icon." };
+  }
+
   const createdEvent = await db.transaction(async (transaction) => {
     const [event] = await transaction
       .insert(events)
@@ -70,6 +77,7 @@ export async function createEvent(
         allDay: formData.get("allDay") === "on",
         notes,
         userId: activeUser.id,
+        iconId,
       })
       .returning({ id: events.id });
 

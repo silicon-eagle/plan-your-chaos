@@ -13,6 +13,7 @@ vi.mock("@/db", () => ({
     transaction: mocks.transaction,
   },
 }));
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/active-users", () => ({
   getActiveUser: mocks.getActiveUser,
 }));
@@ -43,9 +44,13 @@ describe("createEvent", () => {
   it("creates an event with selected attendants and redirects", async () => {
     mocks.getActiveUser.mockResolvedValue({ id: 2 });
     const where = vi.fn().mockResolvedValue([{ id: 2 }, { id: 3 }]);
-    mocks.select.mockReturnValue({
-      from: vi.fn(() => ({ where })),
-    });
+    mocks.select
+      .mockReturnValueOnce({
+        from: vi.fn(() => ({ where })),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockResolvedValue([{ id: 5 }, { id: 6 }]),
+      });
 
     const returning = vi.fn().mockResolvedValue([{ id: 12 }]);
     const eventValues = vi.fn(() => ({ returning }));
@@ -63,6 +68,7 @@ describe("createEvent", () => {
     formData.set("startsAt", "2026-07-23T18:00");
     formData.set("endsAt", "2026-07-23T19:00");
     formData.set("notes", "Bring dessert");
+    formData.set("iconId", "5");
     formData.append("attendantIds", "2");
     formData.append("attendantIds", "3");
 
@@ -73,6 +79,7 @@ describe("createEvent", () => {
         title: "Dinner",
         userId: 2,
         notes: "Bring dessert",
+        iconId: 5,
       }),
     );
     expect(attendantValues).toHaveBeenCalledWith([

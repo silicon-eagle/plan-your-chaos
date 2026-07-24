@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import Image from "next/image";
+import { useActionState, useState } from "react";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
+import type { EventIcon } from "@/lib/events/icons";
 import { createEvent, type CreateEventState } from "./actions";
 import styles from "../events.module.css";
 
@@ -14,21 +16,65 @@ type EventFormProps = {
     avatarPath: string | null;
   }[];
   activeUserId: number;
+  icons: EventIcon[];
+  defaultIconId: number;
 };
 
 const initialCreateEventState: CreateEventState = {
   error: null,
 };
 
+type DateTimeFieldProps = {
+  id: string;
+  label: string;
+  name: string;
+  defaultValue: string;
+};
+
+function DateTimeField({
+  id,
+  label,
+  name,
+  defaultValue,
+}: DateTimeFieldProps) {
+  return (
+    <div className={styles.field}>
+      <label className={styles.label} htmlFor={id}>
+        {label}
+      </label>
+      <div className={styles.dateTimeField}>
+        <input
+          className={styles.input}
+          id={id}
+          type="datetime-local"
+          name={name}
+          defaultValue={defaultValue}
+          required
+        />
+      </div>
+    </div>
+  );
+}
+
 export function EventForm({
   initialDate,
   users,
   activeUserId,
+  icons,
+  defaultIconId,
 }: EventFormProps) {
   const [state, formAction, isPending] = useActionState(
     createEvent,
     initialCreateEventState,
   );
+  const [selectedIconId, setSelectedIconId] = useState(defaultIconId);
+  const [isIconGridOpen, setIsIconGridOpen] = useState(false);
+  const selectedIcon =
+    icons.find((icon) => icon.id === selectedIconId) ?? icons[0];
+
+  if (!selectedIcon) {
+    throw new Error("No event icons are available");
+  }
 
   return (
     <form className={styles.form} action={formAction}>
@@ -37,27 +83,79 @@ export function EventForm({
         <input className={styles.input} name="title" required />
       </label>
 
-      <label className={styles.field}>
-        <span className={styles.label}>Starts</span>
+      <div className={styles.iconPicker}>
+        <span className={styles.label}>Icon</span>
+        <div className={styles.iconPickerControls}>
+          <Image
+            className={styles.eventIcon}
+            src={`/icons/yellow/${selectedIcon.fileName}-yellow.png`}
+            alt={`${selectedIcon.name} icon`}
+            width={16}
+            height={16}
+            unoptimized
+          />
+          <PixelButton
+            className={styles.iconSelectButton}
+            type="button"
+            aria-expanded={isIconGridOpen}
+            aria-controls="event-icon-grid"
+            onClick={() => setIsIconGridOpen((isOpen) => !isOpen)}
+          >
+            Select icon
+          </PixelButton>
+        </div>
         <input
-          className={styles.input}
-          type="datetime-local"
-          name="startsAt"
-          defaultValue={`${initialDate}T09:00`}
-          required
+          type="hidden"
+          name="iconId"
+          value={selectedIcon.id}
+          readOnly
         />
-      </label>
 
-      <label className={styles.field}>
-        <span className={styles.label}>Ends</span>
-        <input
-          className={styles.input}
-          type="datetime-local"
-          name="endsAt"
-          defaultValue={`${initialDate}T10:00`}
-          required
-        />
-      </label>
+        {isIconGridOpen && (
+          <div
+            className={styles.iconGrid}
+            id="event-icon-grid"
+            aria-label="Event icons"
+          >
+            {icons.map((icon) => (
+              <button
+                className={styles.iconOption}
+                type="button"
+                aria-label={`Select ${icon.name} icon`}
+                aria-pressed={icon.id === selectedIcon.id}
+                onClick={() => {
+                  setSelectedIconId(icon.id);
+                  setIsIconGridOpen(false);
+                }}
+                key={icon.id}
+              >
+                <Image
+                  className={styles.eventIcon}
+                  src={`/icons/yellow/${icon.fileName}-yellow.png`}
+                  alt=""
+                  width={16}
+                  height={16}
+                  unoptimized
+                />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <DateTimeField
+        id="event-start"
+        label="Starts"
+        name="startsAt"
+        defaultValue={`${initialDate}T09:00`}
+      />
+
+      <DateTimeField
+        id="event-end"
+        label="Ends"
+        name="endsAt"
+        defaultValue={`${initialDate}T10:00`}
+      />
 
       <label className={styles.checkbox}>
         <input type="checkbox" name="allDay" />
