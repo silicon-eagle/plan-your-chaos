@@ -2,19 +2,18 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { EventForm } from "./EventForm";
 
-vi.mock("./actions", () => ({
-  createEvent: vi.fn(),
-}));
-
 const icons = [
   { id: 1, name: "Cat", fileName: "cat" },
   { id: 2, name: "Star", fileName: "star" },
 ];
 
 describe("EventForm", () => {
+  const action = vi.fn();
+
   it("shows the default yellow icon and allows another icon to be selected", () => {
     const { container } = render(
       <EventForm
+        action={action}
         initialDate="2026-07-24"
         users={[]}
         activeUserId={1}
@@ -45,6 +44,7 @@ describe("EventForm", () => {
   it("keeps the native date-time inputs without extra buttons", () => {
     render(
       <EventForm
+        action={action}
         initialDate="2026-07-24"
         users={[]}
         activeUserId={1}

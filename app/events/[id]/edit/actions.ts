@@ -1,15 +1,15 @@
 "use server";
 
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
-import { getActiveUser } from "@/lib/auth/active-users";
 import { parseEventFormData } from "@/lib/events/form-data";
 import { resolveEventIconId } from "@/lib/events/icons";
-import type { EventFormState } from "../form-state";
+import type { EventFormState } from "../../form-state";
 
-export async function createEvent(
+export async function updateEvent(
+  eventId: number,
   _state: EventFormState,
   formData: FormData,
 ): Promise<EventFormState> {
@@ -29,7 +29,6 @@ export async function createEvent(
     iconId: submittedIconId,
   } = parsed.data;
 
-  const activeUser = await getActiveUser();
   if (attendantIds.length > 0) {
     const selectedUsers = await db
       .select({ id: users.id })
@@ -47,23 +46,28 @@ export async function createEvent(
     return { error: "Select a valid event icon." };
   }
 
-  const createdEvent = await db.transaction(async (transaction) => {
+  const updatedEvent = await db.transaction(async (transaction) => {
     const [event] = await transaction
-      .insert(events)
-      .values({
+      .update(events)
+      .set({
         title,
         startsAt,
         endsAt,
         allDay,
         notes,
-        userId: activeUser.id,
         iconId,
+        updatedAt: new Date(),
       })
+      .where(eq(events.id, eventId))
       .returning({ id: events.id });
 
     if (!event) {
-      throw new Error("The event could not be created");
+      return null;
     }
+
+    await transaction
+      .delete(eventAttendants)
+      .where(eq(eventAttendants.eventId, event.id));
 
     if (attendantIds.length > 0) {
       await transaction.insert(eventAttendants).values(
@@ -77,5 +81,9 @@ export async function createEvent(
     return event;
   });
 
-  redirect(`/events/${createdEvent.id}`);
+  if (!updatedEvent) {
+    return { error: "The event no longer exists." };
+  }
+
+  redirect(`/events/${updatedEvent.id}`);
 }

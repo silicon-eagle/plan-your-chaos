@@ -5,6 +5,7 @@ import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { parsePositiveInteger } from "@/app/api/events/validation";
+import { EventActions } from "./EventActions";
 import styles from "../events.module.css";
 
 type EventPageProps = {
@@ -63,6 +64,7 @@ export default async function EventPage({ params }: EventPageProps) {
         className={`pixel-border ${styles.panel}`}
         aria-labelledby="event-heading"
       >
+        <EventActions eventId={event.id} />
         <div className={styles.eventHeading}>
           {event.iconFileName && (
             <Image

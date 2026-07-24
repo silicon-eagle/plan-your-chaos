@@ -5,10 +5,24 @@ import { useActionState, useState } from "react";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import type { EventIcon } from "@/lib/events/icons";
-import { createEvent, type CreateEventState } from "./actions";
+import type { EventFormState } from "../form-state";
 import styles from "../events.module.css";
 
+type EventFormValues = {
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  allDay: boolean;
+  notes: string;
+  attendantIds: number[];
+  iconId: number;
+};
+
 type EventFormProps = {
+  action: (
+    state: EventFormState,
+    formData: FormData,
+  ) => Promise<EventFormState>;
   initialDate: string;
   users: {
     id: number;
@@ -18,9 +32,11 @@ type EventFormProps = {
   activeUserId: number;
   icons: EventIcon[];
   defaultIconId: number;
+  initialValues?: EventFormValues;
+  submitLabel?: string;
 };
 
-const initialCreateEventState: CreateEventState = {
+const initialEventFormState: EventFormState = {
   error: null,
 };
 
@@ -57,17 +73,22 @@ function DateTimeField({
 }
 
 export function EventForm({
+  action,
   initialDate,
   users,
   activeUserId,
   icons,
   defaultIconId,
+  initialValues,
+  submitLabel = "Create event",
 }: EventFormProps) {
   const [state, formAction, isPending] = useActionState(
-    createEvent,
-    initialCreateEventState,
+    action,
+    initialEventFormState,
   );
-  const [selectedIconId, setSelectedIconId] = useState(defaultIconId);
+  const [selectedIconId, setSelectedIconId] = useState(
+    initialValues?.iconId ?? defaultIconId,
+  );
   const [isIconGridOpen, setIsIconGridOpen] = useState(false);
   const selectedIcon =
     icons.find((icon) => icon.id === selectedIconId) ?? icons[0];
@@ -80,7 +101,12 @@ export function EventForm({
     <form className={styles.form} action={formAction}>
       <label className={styles.field}>
         <span className={styles.label}>Title</span>
-        <input className={styles.input} name="title" required />
+        <input
+          className={styles.input}
+          name="title"
+          defaultValue={initialValues?.title}
+          required
+        />
       </label>
 
       <div className={styles.iconPicker}>
@@ -147,24 +173,32 @@ export function EventForm({
         id="event-start"
         label="Starts"
         name="startsAt"
-        defaultValue={`${initialDate}T09:00`}
+        defaultValue={initialValues?.startsAt ?? `${initialDate}T09:00`}
       />
 
       <DateTimeField
         id="event-end"
         label="Ends"
         name="endsAt"
-        defaultValue={`${initialDate}T10:00`}
+        defaultValue={initialValues?.endsAt ?? `${initialDate}T10:00`}
       />
 
       <label className={styles.checkbox}>
-        <input type="checkbox" name="allDay" />
+        <input
+          type="checkbox"
+          name="allDay"
+          defaultChecked={initialValues?.allDay}
+        />
         <span>All day</span>
       </label>
 
       <label className={styles.field}>
         <span className={styles.label}>Notes</span>
-        <textarea className={styles.input} name="notes" />
+        <textarea
+          className={styles.input}
+          name="notes"
+          defaultValue={initialValues?.notes}
+        />
       </label>
 
       <fieldset className={styles.attendants}>
@@ -176,7 +210,11 @@ export function EventForm({
                 type="checkbox"
                 name="attendantIds"
                 value={user.id}
-                defaultChecked={user.id === activeUserId}
+                defaultChecked={
+                  initialValues
+                    ? initialValues.attendantIds.includes(user.id)
+                    : user.id === activeUserId
+                }
               />
               <UserAvatar
                 name={user.name}
@@ -200,7 +238,7 @@ export function EventForm({
         type="submit"
         disabled={isPending}
       >
-        {isPending ? "Creating..." : "Create event"}
+        {isPending ? "Saving..." : submitLabel}
       </PixelButton>
     </form>
   );

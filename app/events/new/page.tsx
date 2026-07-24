@@ -5,6 +5,7 @@ import { getActiveUser } from "@/lib/auth/active-users";
 import { formatDateKey, parseDateKey } from "@/lib/calendar/utils";
 import { chooseRandomIcon } from "@/lib/events/icons";
 import { EventForm } from "./EventForm";
+import { createEvent } from "./actions";
 import styles from "../events.module.css";
 
 type NewEventPageProps = {
@@ -46,6 +47,7 @@ export default async function NewEventPage({
       >
         <h1 id="new-event-heading">Create Event</h1>
         <EventForm
+          action={createEvent}
           initialDate={initialDate}
           users={householdUsers}
           activeUserId={activeUser.id}
