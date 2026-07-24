@@ -1,4 +1,4 @@
-import { CalendarNewButton } from "@/components/Calendar/CalendarNewButton";
+import Image from "next/image";
 import { EventList } from "@/components/EventList/EventList";
 import styles from "./page.module.css";
 
@@ -10,8 +10,16 @@ export default function EventsPage() {
     <main className={styles.page}>
       <section className={styles.panel} aria-labelledby="events-heading">
         <header className={styles.header}>
-          <h1 id="events-heading">Events</h1>
-          <CalendarNewButton />
+          <h1 id="events-heading">
+            <Image
+              className={styles.headingImage}
+              src="/images/events-header.png"
+              alt="Events"
+              width={96}
+              height={17}
+              unoptimized
+            />
+          </h1>
         </header>
         <EventList from={beginningOfTime} to={endOfTime} />
       </section>

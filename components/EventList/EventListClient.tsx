@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { CalendarNewButton } from "@/components/Calendar/CalendarNewButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import styles from "./EventList.module.css";
 
@@ -78,21 +79,24 @@ export function EventListClient({
 
   return (
     <section className={styles.eventList} aria-label="Events">
-      <fieldset className={styles.filters}>
-        <legend>Filter by attendee</legend>
-        <div className={styles.filterOptions}>
-          {users.map((user) => (
-            <label key={user.id}>
-              <input
-                type="checkbox"
-                checked={selectedUserIds.includes(user.id)}
-                onChange={() => toggleUser(user.id)}
-              />
-              <span>{user.name}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <div className={styles.filterRow}>
+        <fieldset className={styles.filters}>
+          <legend>Filter by attendee</legend>
+          <div className={styles.filterOptions}>
+            {users.map((user) => (
+              <label key={user.id}>
+                <input
+                  type="checkbox"
+                  checked={selectedUserIds.includes(user.id)}
+                  onChange={() => toggleUser(user.id)}
+                />
+                <span>{user.name}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <CalendarNewButton />
+      </div>
 
       <div className={styles.scrollArea}>
         {filteredEvents.length > 0 ? (

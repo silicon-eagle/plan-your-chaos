@@ -10,12 +10,19 @@
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin-bottom: 2rem;
 }
 
 .header h1 {
   margin: 0;
+  line-height: 0;
+}
+
+.headingImage {
+  width: calc(96px * 3);
+  height: calc(17px * 3);
+  image-rendering: pixelated;
 }
 
 @media (max-width: 42rem) {
