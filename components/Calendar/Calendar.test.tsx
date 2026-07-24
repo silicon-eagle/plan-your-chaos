@@ -1,9 +1,33 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { Calendar } from "./Calendar";
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ events: [] }), { status: 200 }),
+      ),
+  );
+});
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("Calendar", () => {
@@ -45,5 +69,36 @@ describe("Calendar", () => {
       name: "Thursday, 15 January 2026",
     });
     expect(day).toHaveAttribute("href", "/day/2026-01-15");
+  });
+
+  it("shows one marker for each event planned on a day", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          events: [
+            {
+              startsAt: "2026-01-15T09:00:00.000Z",
+              endsAt: "2026-01-15T10:00:00.000Z",
+            },
+            {
+              startsAt: "2026-01-15T12:00:00.000Z",
+              endsAt: "2026-01-15T13:00:00.000Z",
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+    render(<Calendar initialDate={new Date(2026, 0, 15)} />);
+
+    const day = await screen.findByRole("link", {
+      name: "Thursday, 15 January 2026, 2 events",
+    });
+
+    await waitFor(() => {
+      expect(
+        day.querySelectorAll('img[src="/icons/eventMarker.png"]'),
+      ).toHaveLength(2);
+    });
   });
 });

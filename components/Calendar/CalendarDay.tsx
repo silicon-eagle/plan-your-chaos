@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   formatDateKey,
   getDateLabel,
@@ -8,11 +9,17 @@ import styles from "./CalendarDay.module.css";
 
 type CalendarDayProps = {
   day: CalendarDayData;
+  eventCount?: number;
 };
 
-export function CalendarDay({ day }: CalendarDayProps) {
+export function CalendarDay({ day, eventCount = 0 }: CalendarDayProps) {
   const dateKey = formatDateKey(day.date);
   const label = getDateLabel(day.date);
+  const todayLabel = day.isToday ? `${label}, today` : label;
+  const accessibleLabel =
+    eventCount > 0
+      ? `${todayLabel}, ${eventCount} ${eventCount === 1 ? "event" : "events"}`
+      : todayLabel;
 
   return (
     <PixelButton
@@ -24,10 +31,25 @@ export function CalendarDay({ day }: CalendarDayProps) {
         .filter(Boolean)
         .join(" ")}
       href={`/day/${dateKey}`}
-      aria-label={day.isToday ? `${label}, today` : label}
+      aria-label={accessibleLabel}
       aria-current={day.isToday ? "date" : undefined}
     >
       <time dateTime={dateKey}>{day.date.getDate()}</time>
+      {eventCount > 0 && (
+        <span className={styles.markers} aria-hidden="true">
+          {Array.from({ length: eventCount }, (_, index) => (
+            <Image
+              className={styles.marker}
+              src="/icons/eventMarker.png"
+              alt=""
+              width={4}
+              height={4}
+              unoptimized
+              key={index}
+            />
+          ))}
+        </span>
+      )}
     </PixelButton>
   );
 }

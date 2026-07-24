@@ -1,5 +1,6 @@
 .day {
   position: relative;
+  container-type: inline-size;
   width: 100%;
   min-width: 0;
   aspect-ratio: 1;
@@ -25,9 +26,38 @@
     calc(2px * var(--pixel-art-scale)) stretch;
 }
 
+.markers {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.marker {
+  width: calc(4px * var(--pixel-art-scale));
+  height: calc(4px * var(--pixel-art-scale));
+  image-rendering: pixelated;
+}
+
+@container (max-width: 4rem) {
+  .marker:not(:first-child) {
+    display: none;
+  }
+}
+
 @media (max-width: 42rem) {
   .day {
     padding: 0.3rem;
     font-size: 14px;
+  }
+
+  .markers {
+    right: 0.3rem;
+    bottom: 0.3rem;
+    left: 0.3rem;
   }
 }

@@ -1,7 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { getMonthCalendar, getMonthLabel } from "@/lib/calendar/utils";
+import { useEffect, useState } from "react";
+import {
+  addDays,
+  formatDateKey,
+  getMonthCalendar,
+  getMonthLabel,
+} from "@/lib/calendar/utils";
 import { CalendarNewButton } from "./CalendarNewButton";
 import { CalendarGrid } from "./CalendarGrid";
 import { CalendarNavButton } from "./CalendarNavButton";
@@ -12,6 +17,10 @@ type CalendarProps = {
   initialDate?: Date;
 };
 
+type CalendarEventRange = {
+  startsAt: Date;
+  endsAt: Date;
+};
 
 export function Calendar({ initialDate = new Date() }: CalendarProps) {
   const [visibleMonth, setVisibleMonth] = useState(
@@ -21,6 +30,105 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
     visibleMonth.getFullYear(),
     visibleMonth.getMonth(),
   );
+  const [eventRanges, setEventRanges] = useState<CalendarEventRange[]>([]);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+  const rangeFrom = new Date(
+    days[0].date.getFullYear(),
+    days[0].date.getMonth(),
+    days[0].date.getDate(),
+  );
+  const lastDay = days.at(-1)!.date;
+  const rangeTo = addDays(
+    new Date(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate()),
+    1,
+  );
+  const rangeFromValue = rangeFrom.toISOString();
+  const rangeToValue = rangeTo.toISOString();
+  const eventCounts = Object.fromEntries(
+    days.map((day) => {
+      const dayStart = new Date(
+        day.date.getFullYear(),
+        day.date.getMonth(),
+        day.date.getDate(),
+      );
+      const dayEnd = addDays(dayStart, 1);
+      const count = eventRanges.filter(
+        (event) => event.startsAt < dayEnd && event.endsAt > dayStart,
+      ).length;
+
+      return [formatDateKey(day.date), count];
+    }),
+  );
+
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    async function loadEvents() {
+      setEventRanges([]);
+      setEventsError(null);
+
+      try {
+        const searchParams = new URLSearchParams({
+          from: rangeFromValue,
+          to: rangeToValue,
+        });
+        const response = await fetch(`/api/events?${searchParams}`, {
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Event request failed with ${response.status}`);
+        }
+
+        const body: unknown = await response.json();
+
+        if (
+          !body ||
+          typeof body !== "object" ||
+          !("events" in body) ||
+          !Array.isArray(body.events)
+        ) {
+          throw new Error("Event response has an invalid shape");
+        }
+
+        const ranges = body.events.map((event: unknown) => {
+          if (
+            !event ||
+            typeof event !== "object" ||
+            !("startsAt" in event) ||
+            !("endsAt" in event) ||
+            typeof event.startsAt !== "string" ||
+            typeof event.endsAt !== "string"
+          ) {
+            throw new Error("Event response contains an invalid event");
+          }
+
+          const startsAt = new Date(event.startsAt);
+          const endsAt = new Date(event.endsAt);
+
+          if (
+            Number.isNaN(startsAt.getTime()) ||
+            Number.isNaN(endsAt.getTime())
+          ) {
+            throw new Error("Event response contains an invalid date");
+          }
+
+          return { startsAt, endsAt };
+        });
+
+        setEventRanges(ranges);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setEventsError("Events could not be loaded.");
+      }
+    }
+
+    void loadEvents();
+    return () => abortController.abort();
+  }, [rangeFromValue, rangeToValue]);
 
   function changeMonth(offset: number) {
     setVisibleMonth(
@@ -56,7 +164,12 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
         </div>
       </header>
 
-      <CalendarGrid days={days} />
+      {eventsError && (
+        <p className={styles.error} role="alert">
+          {eventsError}
+        </p>
+      )}
+      <CalendarGrid days={days} eventCounts={eventCounts} />
     </section>
   );
 }
