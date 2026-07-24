@@ -7,6 +7,10 @@ import { eventAttendants, events, users } from "@/db/schema";
 import { getActiveUser } from "@/lib/auth/active-users";
 import { parseEventFormData } from "@/lib/events/form-data";
 import { resolveEventIconId } from "@/lib/events/icons";
+import {
+  logger,
+  withDatabaseLogging,
+} from "@/lib/logging/logger";
 import type { EventFormState } from "../form-state";
 
 export async function createEvent(
@@ -16,6 +20,7 @@ export async function createEvent(
   const parsed = parseEventFormData(formData);
 
   if ("error" in parsed) {
+    logger.warn("event.create.rejected", { reason: "invalid_form" });
     return { error: parsed.error };
   }
 
@@ -37,6 +42,9 @@ export async function createEvent(
       .where(inArray(users.id, attendantIds));
 
     if (selectedUsers.length !== attendantIds.length) {
+      logger.warn("event.create.rejected", {
+        reason: "unknown_attendant",
+      });
       return { error: "One or more selected attendants no longer exist." };
     }
   }
@@ -44,38 +52,49 @@ export async function createEvent(
   const iconId = await resolveEventIconId(submittedIconId);
 
   if (!iconId) {
+    logger.warn("event.create.rejected", { reason: "invalid_icon" });
     return { error: "Select a valid event icon." };
   }
 
-  const createdEvent = await db.transaction(async (transaction) => {
-    const [event] = await transaction
-      .insert(events)
-      .values({
-        title,
-        startsAt,
-        endsAt,
-        allDay,
-        notes,
-        userId: activeUser.id,
-        iconId,
-      })
-      .returning({ id: events.id });
+  const createdEvent = await withDatabaseLogging(
+    "event.create",
+    {
+      userId: activeUser.id,
+      iconId,
+      attendantCount: attendantIds.length,
+    },
+    () =>
+      db.transaction(async (transaction) => {
+        const [event] = await transaction
+          .insert(events)
+          .values({
+            title,
+            startsAt,
+            endsAt,
+            allDay,
+            notes,
+            userId: activeUser.id,
+            iconId,
+          })
+          .returning({ id: events.id });
 
-    if (!event) {
-      throw new Error("The event could not be created");
-    }
+        if (!event) {
+          throw new Error("The event could not be created");
+        }
 
-    if (attendantIds.length > 0) {
-      await transaction.insert(eventAttendants).values(
-        attendantIds.map((userId) => ({
-          eventId: event.id,
-          userId,
-        })),
-      );
-    }
+        if (attendantIds.length > 0) {
+          await transaction.insert(eventAttendants).values(
+            attendantIds.map((userId) => ({
+              eventId: event.id,
+              userId,
+            })),
+          );
+        }
 
-    return event;
-  });
+        return event;
+      }),
+  );
 
+  logger.info("event.created", { eventId: createdEvent.id });
   redirect(`/events/${createdEvent.id}`);
 }

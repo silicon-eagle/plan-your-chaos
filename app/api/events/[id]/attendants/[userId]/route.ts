@@ -3,12 +3,17 @@ import { NextResponse } from "next/server";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { db } from "@/db";
 import { eventAttendants } from "@/db/schema";
+import {
+  logger,
+  withDatabaseLogging,
+  withRequestLogging,
+} from "@/lib/logging/logger";
 
 type RouteContext = {
   params: Promise<{ id: string; userId: string }>;
 };
 
-export async function DELETE(_request: Request, context: RouteContext) {
+async function removeAttendant(_request: Request, context: RouteContext) {
   const params = await context.params;
   const eventId = parsePositiveInteger(params.id);
   const userId = parsePositiveInteger(params.userId);
@@ -20,15 +25,20 @@ export async function DELETE(_request: Request, context: RouteContext) {
     );
   }
 
-  const [removedAttendant] = await db
-    .delete(eventAttendants)
-    .where(
-      and(
-        eq(eventAttendants.eventId, eventId),
-        eq(eventAttendants.userId, userId),
-      ),
-    )
-    .returning({ userId: eventAttendants.userId });
+  const [removedAttendant] = await withDatabaseLogging(
+    "event_attendant.delete",
+    { eventId, userId, source: "api" },
+    () =>
+      db
+        .delete(eventAttendants)
+        .where(
+          and(
+            eq(eventAttendants.eventId, eventId),
+            eq(eventAttendants.userId, userId),
+          ),
+        )
+        .returning({ userId: eventAttendants.userId }),
+  );
 
   if (!removedAttendant) {
     return NextResponse.json(
@@ -37,5 +47,15 @@ export async function DELETE(_request: Request, context: RouteContext) {
     );
   }
 
+  logger.info("event_attendant.deleted", {
+    eventId,
+    userId,
+    source: "api",
+  });
   return NextResponse.json({ removedUserId: removedAttendant.userId });
 }
+
+export const DELETE = withRequestLogging(
+  "DELETE /api/events/[id]/attendants/[userId]",
+  removeAttendant,
+);

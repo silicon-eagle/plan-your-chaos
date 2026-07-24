@@ -2,6 +2,11 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { events, users } from "@/db/schema";
+import {
+  logger,
+  withDatabaseLogging,
+  withRequestLogging,
+} from "@/lib/logging/logger";
 import { parseDate, parsePositiveInteger } from "../validation";
 
 type RouteContext = {
@@ -12,7 +17,7 @@ function errorResponse(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-export async function PATCH(request: Request, context: RouteContext) {
+async function updateEvent(request: Request, context: RouteContext) {
   const { id } = await context.params;
   const eventId = parsePositiveInteger(id);
 
@@ -115,20 +120,26 @@ export async function PATCH(request: Request, context: RouteContext) {
     return errorResponse("startsAt must be before endsAt");
   }
 
-  const [updatedEvent] = await db
-    .update(events)
-    .set({ ...changes, updatedAt: new Date() })
-    .where(eq(events.id, eventId))
-    .returning();
+  const [updatedEvent] = await withDatabaseLogging(
+    "event.update",
+    { eventId, source: "api" },
+    () =>
+      db
+        .update(events)
+        .set({ ...changes, updatedAt: new Date() })
+        .where(eq(events.id, eventId))
+        .returning(),
+  );
 
   if (!updatedEvent) {
     return errorResponse("Event not found", 404);
   }
 
+  logger.info("event.updated", { eventId, source: "api" });
   return NextResponse.json({ event: updatedEvent });
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+async function deleteEvent(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   const eventId = parsePositiveInteger(id);
 
@@ -139,14 +150,29 @@ export async function DELETE(_request: Request, context: RouteContext) {
     );
   }
 
-  const [deletedEvent] = await db
-    .delete(events)
-    .where(eq(events.id, eventId))
-    .returning({ id: events.id });
+  const [deletedEvent] = await withDatabaseLogging(
+    "event.delete",
+    { eventId, source: "api" },
+    () =>
+      db
+        .delete(events)
+        .where(eq(events.id, eventId))
+        .returning({ id: events.id }),
+  );
 
   if (!deletedEvent) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
+  logger.info("event.deleted", { eventId, source: "api" });
   return NextResponse.json({ deletedEventId: deletedEvent.id });
 }
+
+export const PATCH = withRequestLogging(
+  "PATCH /api/events/[id]",
+  updateEvent,
+);
+export const DELETE = withRequestLogging(
+  "DELETE /api/events/[id]",
+  deleteEvent,
+);

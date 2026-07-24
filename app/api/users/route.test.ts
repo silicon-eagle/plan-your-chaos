@@ -22,7 +22,7 @@ describe("GET /api/users", () => {
     const from = vi.fn(() => ({ orderBy }));
     database.select.mockReturnValue({ from });
 
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/users"));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ users });

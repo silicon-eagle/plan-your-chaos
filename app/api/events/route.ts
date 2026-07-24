@@ -4,13 +4,18 @@ import { db } from "@/db";
 import { events, users } from "@/db/schema";
 import { resolveEventIconId } from "@/lib/events/icons";
 import { getEventsInRange } from "@/lib/events/queries";
+import {
+  logger,
+  withDatabaseLogging,
+  withRequestLogging,
+} from "@/lib/logging/logger";
 import { parseDate, parsePositiveInteger } from "./validation";
 
 function errorResponse(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-export async function GET(request: Request) {
+async function getEvents(request: Request) {
   const searchParams = new URL(request.url).searchParams;
   const from = parseDate(searchParams.get("from"));
   const to = parseDate(searchParams.get("to"));
@@ -26,7 +31,7 @@ export async function GET(request: Request) {
   return NextResponse.json({ events: await getEventsInRange(from, to) });
 }
 
-export async function POST(request: Request) {
+async function createEvent(request: Request) {
   let body: unknown;
 
   try {
@@ -85,18 +90,30 @@ export async function POST(request: Request) {
     return errorResponse("iconId must reference an existing icon");
   }
 
-  const [createdEvent] = await db
-    .insert(events)
-    .values({
-      title,
-      startsAt,
-      endsAt,
-      allDay,
-      userId,
-      notes,
-      iconId,
-    })
-    .returning();
+  const [createdEvent] = await withDatabaseLogging(
+    "event.create",
+    { source: "api", userId, iconId },
+    () =>
+      db
+        .insert(events)
+        .values({
+          title,
+          startsAt,
+          endsAt,
+          allDay,
+          userId,
+          notes,
+          iconId,
+        })
+        .returning(),
+  );
 
+  logger.info("event.created", {
+    eventId: createdEvent.id,
+    source: "api",
+  });
   return NextResponse.json({ event: createdEvent }, { status: 201 });
 }
+
+export const GET = withRequestLogging("GET /api/events", getEvents);
+export const POST = withRequestLogging("POST /api/events", createEvent);

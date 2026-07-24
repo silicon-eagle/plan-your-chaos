@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
+import {
+  logger,
+  withDatabaseLogging,
+  withRequestLogging,
+} from "@/lib/logging/logger";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -17,7 +22,7 @@ async function getEventId(context: RouteContext) {
   return parsePositiveInteger(id);
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+async function getAttendants(_request: Request, context: RouteContext) {
   const eventId = await getEventId(context);
 
   if (!eventId) {
@@ -49,7 +54,7 @@ export async function GET(_request: Request, context: RouteContext) {
   return NextResponse.json({ attendants });
 }
 
-export async function POST(request: Request, context: RouteContext) {
+async function addAttendant(request: Request, context: RouteContext) {
   const eventId = await getEventId(context);
 
   if (!eventId) {
@@ -105,15 +110,34 @@ export async function POST(request: Request, context: RouteContext) {
     return errorResponse("User not found", 404);
   }
 
-  const [attendance] = await db
-    .insert(eventAttendants)
-    .values({ eventId, userId })
-    .onConflictDoNothing()
-    .returning();
+  const [attendance] = await withDatabaseLogging(
+    "event_attendant.create",
+    { eventId, userId, source: "api" },
+    () =>
+      db
+        .insert(eventAttendants)
+        .values({ eventId, userId })
+        .onConflictDoNothing()
+        .returning(),
+  );
 
   if (!attendance) {
     return errorResponse("User is already an attendant", 409);
   }
 
+  logger.info("event_attendant.created", {
+    eventId,
+    userId,
+    source: "api",
+  });
   return NextResponse.json({ attendant: user }, { status: 201 });
 }
+
+export const GET = withRequestLogging(
+  "GET /api/events/[id]/attendants",
+  getAttendants,
+);
+export const POST = withRequestLogging(
+  "POST /api/events/[id]/attendants",
+  addAttendant,
+);

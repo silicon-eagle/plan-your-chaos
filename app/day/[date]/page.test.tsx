@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const eventListMock = vi.hoisted(() => vi.fn(() => <div>Event list</div>));
+const eventListMock = vi.hoisted(() =>
+  vi.fn((_props: { from: Date; to: Date }) => <div>Event list</div>),
+);
 
 vi.mock("@/components/EventList/EventList", () => ({
   EventList: eventListMock,
@@ -19,7 +21,7 @@ describe("DayPage", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: "Welcome to Thursday, 15 January 2026",
+        name: "Thursday, 15 January 2026",
       }),
     ).toBeInTheDocument();
 

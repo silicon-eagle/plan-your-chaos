@@ -2,8 +2,9 @@ import { asc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { withRequestLogging } from "@/lib/logging/logger";
 
-export async function GET() {
+async function getUsers() {
   const householdUsers = await db
     .select({
       id: users.id,
@@ -16,3 +17,8 @@ export async function GET() {
 
   return NextResponse.json({ users: householdUsers });
 }
+
+export const GET = withRequestLogging(
+  "GET /api/users",
+  async () => getUsers(),
+);
