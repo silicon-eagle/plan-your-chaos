@@ -1,5 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const eventListMock = vi.hoisted(() => vi.fn(() => <div>Event list</div>));
+
+vi.mock("@/components/EventList/EventList", () => ({
+  EventList: eventListMock,
+}));
+
 import DayPage from "./page";
 
 describe("DayPage", () => {
@@ -15,5 +22,8 @@ describe("DayPage", () => {
         name: "Welcome to Thursday, 15 January 2026",
       }),
     ).toBeInTheDocument();
+
+    const { from, to } = eventListMock.mock.calls[0][0];
+    expect(to.getTime() - from.getTime()).toBe(24 * 60 * 60 * 1000);
   });
 });

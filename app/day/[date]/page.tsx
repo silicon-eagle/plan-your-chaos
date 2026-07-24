@@ -1,5 +1,10 @@
 import { notFound } from "next/navigation";
-import { getDateLabel, parseDateKey } from "@/lib/calendar/utils";
+import { EventList } from "@/components/EventList/EventList";
+import {
+  addDays,
+  getDateLabel,
+  parseDateKey,
+} from "@/lib/calendar/utils";
 import { DayNavigation } from "./DayNavigation";
 import styles from "./page.module.css";
 
@@ -20,6 +25,7 @@ export default async function DayPage({ params }: DayPageProps) {
       <section className={styles.content}>
         <DayNavigation date={date} />
         <h1>Welcome to {getDateLabel(date)}</h1>
+        <EventList from={date} to={addDays(date, 1)} />
       </section>
     </main>
   );

@@ -31,6 +31,9 @@ type EventListClientProps = {
     id: number;
     name: string;
   }[];
+  showCreateButton?: boolean;
+  showUpcomingFilter?: boolean;
+  currentTime?: string;
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -58,9 +61,13 @@ function getTimeLabel(event: EventListItem) {
 export function EventListClient({
   events,
   users,
+  showCreateButton = false,
+  showUpcomingFilter = false,
+  currentTime = new Date().toISOString(),
 }: EventListClientProps) {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
-  const filteredEvents =
+  const [upcomingOnly, setUpcomingOnly] = useState(false);
+  const userFilteredEvents =
     selectedUserIds.length === 0
       ? events
       : events.filter((event) =>
@@ -68,6 +75,11 @@ export function EventListClient({
             selectedUserIds.includes(attendant.id),
           ),
         );
+  const filteredEvents = upcomingOnly
+    ? userFilteredEvents.filter(
+        (event) => new Date(event.endsAt) > new Date(currentTime),
+      )
+    : userFilteredEvents;
 
   function toggleUser(userId: number) {
     setSelectedUserIds((selectedIds) =>
@@ -93,9 +105,24 @@ export function EventListClient({
                 <span>{user.name}</span>
               </label>
             ))}
+            {showUpcomingFilter && (
+              <>
+                <span className={styles.filterSeparator} aria-hidden="true">
+                  |
+                </span>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={upcomingOnly}
+                    onChange={(event) => setUpcomingOnly(event.target.checked)}
+                  />
+                  <span>Upcoming only</span>
+                </label>
+              </>
+            )}
           </div>
         </fieldset>
-        <CalendarNewButton />
+        {showCreateButton && <CalendarNewButton />}
       </div>
 
       <div className={styles.scrollArea}>

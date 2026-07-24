@@ -34,6 +34,10 @@
   cursor: pointer;
 }
 
+.filterSeparator {
+  color: var(--light-purple);
+}
+
 .filterOptions input {
   width: 1.25rem;
   height: 1.25rem;

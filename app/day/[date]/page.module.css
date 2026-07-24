@@ -5,7 +5,11 @@
 
 .content {
   display: grid;
+  width: min(100%, 56rem);
   gap: 2rem;
+}
+
+.content h1 {
   text-align: center;
 }
 

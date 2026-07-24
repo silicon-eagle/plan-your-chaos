@@ -10,9 +10,16 @@ import {
 type EventListProps = {
   from: Date;
   to: Date;
+  showCreateButton?: boolean;
+  showUpcomingFilter?: boolean;
 };
 
-export async function EventList({ from, to }: EventListProps) {
+export async function EventList({
+  from,
+  to,
+  showCreateButton = false,
+  showUpcomingFilter = false,
+}: EventListProps) {
   if (
     Number.isNaN(from.getTime()) ||
     Number.isNaN(to.getTime()) ||
@@ -45,5 +52,13 @@ export async function EventList({ from, to }: EventListProps) {
     })),
   }));
 
-  return <EventListClient events={items} users={householdUsers} />;
+  return (
+    <EventListClient
+      events={items}
+      users={householdUsers}
+      showCreateButton={showCreateButton}
+      showUpcomingFilter={showUpcomingFilter}
+      currentTime={new Date().toISOString()}
+    />
+  );
 }

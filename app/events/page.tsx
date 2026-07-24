@@ -21,7 +21,12 @@ export default function EventsPage() {
             />
           </h1>
         </header>
-        <EventList from={beginningOfTime} to={endOfTime} />
+        <EventList
+          from={beginningOfTime}
+          to={endOfTime}
+          showCreateButton
+          showUpcomingFilter
+        />
       </section>
     </main>
   );

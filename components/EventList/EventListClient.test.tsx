@@ -70,4 +70,22 @@ describe("EventListClient", () => {
     expect(screen.getByText("Dinner")).toBeInTheDocument();
     expect(screen.getByText("Concert")).toBeInTheDocument();
   });
+
+  it("can show only upcoming events when enabled", () => {
+    render(
+      <EventListClient
+        events={events}
+        users={[]}
+        showUpcomingFilter
+        currentTime="2026-07-24T20:00:00.000Z"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Upcoming only" }),
+    );
+
+    expect(screen.queryByText("Dinner")).not.toBeInTheDocument();
+    expect(screen.getByText("Concert")).toBeInTheDocument();
+  });
 });
