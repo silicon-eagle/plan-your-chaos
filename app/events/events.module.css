@@ -1,6 +1,6 @@
 .page {
   align-items: start;
-  padding-top: 4rem;
+  padding-top: var(--page-top-spacing);
 }
 
 .panel {
@@ -219,7 +219,7 @@ textarea.input {
 
 @media (max-width: 42rem) {
   .page {
-    padding: 1rem;
+    padding: var(--page-top-spacing) 1rem 1rem;
   }
 
   .panel {

@@ -8,6 +8,7 @@
   --light-purple: #d8c7ff;
   --pixel-art-scale: 2;
   --header-height: calc(64px * var(--pixel-art-scale) + 2rem);
+  --page-top-spacing: 4rem;
 }
 
 * {
@@ -63,7 +64,8 @@ main {
   display: grid;
   min-height: calc(100vh - var(--header-height));
   place-items: center;
-  padding: 2rem;
+  align-items: start;
+  padding: var(--page-top-spacing) 2rem 2rem;
 }
 
 h1 {
@@ -105,6 +107,12 @@ a {
 .desktop-navigation,
 .mobile-navigation {
   display: flex;
+  gap: 0.5rem;
+}
+
+.desktop-actions {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -169,7 +177,7 @@ a {
 
 .user-page {
   align-items: start;
-  padding-top: 4rem;
+  padding-top: var(--page-top-spacing);
 }
 
 .user-panel {
@@ -228,6 +236,10 @@ a {
 }
 
 @media (max-width: 42rem) {
+  :root {
+    --page-top-spacing: 1rem;
+  }
+
   h1 {
     font-size: 40px;
   }
@@ -244,6 +256,7 @@ a {
     display: none;
   }
 
+  .desktop-actions,
   .desktop-user {
     display: none;
   }

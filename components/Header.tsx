@@ -92,8 +92,10 @@ export function Header({
         </picture>
       </Link>
 
-      {renderNavigation("desktop-navigation")}
-      {renderActiveUser("active-user-link desktop-user")}
+      <div className="desktop-actions">
+        {renderNavigation("desktop-navigation")}
+        {renderActiveUser("active-user-link desktop-user")}
+      </div>
 
       <PixelButton
         className="menu-button"

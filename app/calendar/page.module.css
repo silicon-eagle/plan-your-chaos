@@ -1,6 +1,6 @@
 .page {
   align-items: start;
-  padding-top: 4rem;
+  padding-top: var(--page-top-spacing);
 }
 
 .panel {
@@ -9,7 +9,7 @@
 
 @media (max-width: 42rem) {
   .page {
-    padding: 0.5rem;
+    padding: var(--page-top-spacing) 0.5rem 0.5rem;
   }
 
 }

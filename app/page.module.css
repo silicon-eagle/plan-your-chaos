@@ -1,9 +1,10 @@
 .page {
   width: 100%;
-  grid-template-columns: minmax(0, 2fr) minmax(22rem, 1fr);
+  grid-template-columns: minmax(0, 64rem) minmax(22rem, 36rem);
   align-items: start;
+  justify-content: center;
   gap: 1rem;
-  padding: 1rem 2rem 2rem;
+  padding: var(--page-top-spacing) 2rem 2rem;
 }
 
 .calendarPanel,
@@ -20,7 +21,7 @@
 
 @media (max-width: 42rem) {
   .page {
-    padding: 0.5rem;
+    padding: var(--page-top-spacing) 0.5rem 0.5rem;
   }
 
 }
