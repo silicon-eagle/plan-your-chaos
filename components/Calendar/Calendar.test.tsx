@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Calendar } from "./Calendar";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("Calendar", () => {
   it("shows the initial month and navigates across year boundaries", () => {
@@ -19,6 +23,18 @@ describe("Calendar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next month" }));
     expect(
       screen.getByRole("heading", { name: "February 2026" }),
+    ).toBeInTheDocument();
+  });
+
+  it("returns to the current month", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 24, 12));
+    render(<Calendar initialDate={new Date(2026, 0, 15)} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Current month" }));
+
+    expect(
+      screen.getByRole("heading", { name: "July 2026" }),
     ).toBeInTheDocument();
   });
 

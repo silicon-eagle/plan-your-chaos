@@ -12,8 +12,10 @@
   margin-bottom: 1rem;
 }
 
-.previousButton {
+.previousActions {
+  display: flex;
   justify-self: start;
+  gap: 0.5rem;
 }
 
 .headerActions {

@@ -5,6 +5,7 @@ import { getMonthCalendar, getMonthLabel } from "@/lib/calendar/utils";
 import { CalendarNewButton } from "./CalendarNewButton";
 import { CalendarGrid } from "./CalendarGrid";
 import { CalendarNavButton } from "./CalendarNavButton";
+import { CalendarNowButton } from "./CalendarNowButton";
 import styles from "./Calendar.module.css";
 
 type CalendarProps = {
@@ -28,23 +29,30 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
     );
   }
 
+  function goToCurrentMonth() {
+    const today = new Date();
+    setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+  }
+
   return (
     <section className={styles.calendar} aria-labelledby="calendar-heading">
       <header className={styles.header}>
-        <CalendarNavButton
-          className={styles.previousButton}
-          direction="previous"
-          onClick={() => changeMonth(-1)}
-        />
+        <div className={styles.previousActions}>
+          <CalendarNavButton
+            direction="previous"
+            onClick={() => changeMonth(-1)}
+          />
+          <CalendarNowButton onClick={goToCurrentMonth} />
+        </div>
 
         <h2 id="calendar-heading">{getMonthLabel(visibleMonth)}</h2>
 
         <div className={styles.headerActions}>
+          <CalendarNewButton />
           <CalendarNavButton
             direction="next"
             onClick={() => changeMonth(1)}
           />
-          <CalendarNewButton />
         </div>
       </header>
 
