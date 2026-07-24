@@ -1,6 +1,19 @@
 .eventList {
   display: grid;
   gap: 1.5rem;
+  padding: 1rem;
+}
+
+.heading {
+  margin: 0;
+  line-height: 0;
+  text-align: center;
+}
+
+.heading img {
+  width: min(100%, calc(96px * 3));
+  height: auto;
+  image-rendering: pixelated;
 }
 
 .filterRow {
@@ -139,7 +152,33 @@
   padding: 2rem 0;
 }
 
+.compact {
+  gap: 0;
+}
+
+.compact .item a {
+  grid-template-columns: 4px 4rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.compact .iconFrame {
+  width: 4rem;
+  height: 4rem;
+}
+
+.compact .eventDetails strong {
+  font-size: 16px;
+}
+
+.compact .attendants {
+  display: none;
+}
+
 @media (max-width: 42rem) {
+  .eventList {
+    padding: 0.5rem;
+  }
+
   .filterRow {
     align-items: center;
   }

@@ -4,12 +4,12 @@
 }
 
 .panel {
-  width: min(100%, 56rem);
+  width: min(100%, 66rem);
 }
 
 @media (max-width: 42rem) {
   .page {
-    padding: 1rem;
+    padding: 0.5rem;
   }
 
 }

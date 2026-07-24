@@ -88,4 +88,20 @@ describe("EventListClient", () => {
     expect(screen.queryByText("Dinner")).not.toBeInTheDocument();
     expect(screen.getByText("Concert")).toBeInTheDocument();
   });
+
+  it("optionally shows the Events image heading", () => {
+    render(
+      <EventListClient
+        events={[]}
+        users={[]}
+        showHeader
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Events" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Events" })).toHaveAttribute(
+      "src",
+      expect.stringContaining("/images/events-header.png"),
+    );
+  });
 });

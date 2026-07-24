@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { EventList } from "@/components/EventList/EventList";
 import styles from "./page.module.css";
 
@@ -8,24 +7,13 @@ export default function EventsPage() {
 
   return (
     <main className={styles.page}>
-      <section className={styles.panel} aria-labelledby="events-heading">
-        <header className={styles.header}>
-          <h1 id="events-heading">
-            <Image
-              className={styles.headingImage}
-              src="/images/events-header.png"
-              alt="Events"
-              width={96}
-              height={17}
-              unoptimized
-            />
-          </h1>
-        </header>
+      <section className={styles.panel} aria-label="Events">
         <EventList
           from={beginningOfTime}
           to={endOfTime}
           showCreateButton
           showUpcomingFilter
+          showHeader
         />
       </section>
     </main>

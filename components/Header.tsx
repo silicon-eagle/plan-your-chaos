@@ -8,7 +8,8 @@ import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 
 const navigationItems = [
-  { href: "/", label: "Calendar" },
+  { href: "/", label: "Home" },
+  { href: "/calendar", label: "Calendar" },
   { href: "/events", label: "Events" },
 ];
 

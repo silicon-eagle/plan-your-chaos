@@ -143,7 +143,10 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
   }
 
   return (
-    <section className={styles.calendar} aria-labelledby="calendar-heading">
+    <section
+      className={`pixel-border ${styles.calendar}`}
+      aria-labelledby="calendar-heading"
+    >
       <header className={styles.header}>
         <div className={styles.previousActions}>
           <CalendarNavButton

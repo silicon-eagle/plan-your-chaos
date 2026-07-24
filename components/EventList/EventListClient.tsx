@@ -33,6 +33,9 @@ type EventListClientProps = {
   }[];
   showCreateButton?: boolean;
   showUpcomingFilter?: boolean;
+  showFilters?: boolean;
+  compact?: boolean;
+  showHeader?: boolean;
   currentTime?: string;
 };
 
@@ -63,6 +66,9 @@ export function EventListClient({
   users,
   showCreateButton = false,
   showUpcomingFilter = false,
+  showFilters = true,
+  compact = false,
+  showHeader = false,
   currentTime = new Date().toISOString(),
 }: EventListClientProps) {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
@@ -90,40 +96,63 @@ export function EventListClient({
   }
 
   return (
-    <section className={styles.eventList} aria-label="Events">
-      <div className={styles.filterRow}>
-        <fieldset className={styles.filters}>
-          <legend>Filter by attendee</legend>
-          <div className={styles.filterOptions}>
-            {users.map((user) => (
-              <label key={user.id}>
-                <input
-                  type="checkbox"
-                  checked={selectedUserIds.includes(user.id)}
-                  onChange={() => toggleUser(user.id)}
-                />
-                <span>{user.name}</span>
-              </label>
-            ))}
-            {showUpcomingFilter && (
-              <>
-                <span className={styles.filterSeparator} aria-hidden="true">
-                  |
-                </span>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={upcomingOnly}
-                    onChange={(event) => setUpcomingOnly(event.target.checked)}
-                  />
-                  <span>Upcoming only</span>
-                </label>
-              </>
-            )}
-          </div>
-        </fieldset>
-        {showCreateButton && <CalendarNewButton />}
-      </div>
+    <section
+      className={["pixel-border", styles.eventList, compact && styles.compact]
+        .filter(Boolean)
+        .join(" ")}
+      aria-label="Events"
+    >
+      {showHeader && (
+        <h2 className={styles.heading}>
+          <Image
+            src="/images/events-header.png"
+            alt="Events"
+            width={96}
+            height={17}
+            unoptimized
+          />
+        </h2>
+      )}
+
+      {(showFilters || showCreateButton) && (
+        <div className={styles.filterRow}>
+          {showFilters && (
+            <fieldset className={styles.filters}>
+              <legend>Filter by attendee</legend>
+              <div className={styles.filterOptions}>
+                {users.map((user) => (
+                  <label key={user.id}>
+                    <input
+                      type="checkbox"
+                      checked={selectedUserIds.includes(user.id)}
+                      onChange={() => toggleUser(user.id)}
+                    />
+                    <span>{user.name}</span>
+                  </label>
+                ))}
+                {showUpcomingFilter && (
+                  <>
+                    <span className={styles.filterSeparator} aria-hidden="true">
+                      |
+                    </span>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={upcomingOnly}
+                        onChange={(event) =>
+                          setUpcomingOnly(event.target.checked)
+                        }
+                      />
+                      <span>Upcoming only</span>
+                    </label>
+                  </>
+                )}
+              </div>
+            </fieldset>
+          )}
+          {showCreateButton && <CalendarNewButton />}
+        </div>
+      )}
 
       <div className={styles.scrollArea}>
         {filteredEvents.length > 0 ? (

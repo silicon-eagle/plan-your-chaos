@@ -12,6 +12,9 @@ type EventListProps = {
   to: Date;
   showCreateButton?: boolean;
   showUpcomingFilter?: boolean;
+  showFilters?: boolean;
+  compact?: boolean;
+  showHeader?: boolean;
 };
 
 export async function EventList({
@@ -19,6 +22,9 @@ export async function EventList({
   to,
   showCreateButton = false,
   showUpcomingFilter = false,
+  showFilters = true,
+  compact = false,
+  showHeader = false,
 }: EventListProps) {
   if (
     Number.isNaN(from.getTime()) ||
@@ -30,13 +36,15 @@ export async function EventList({
 
   const [events, householdUsers] = await Promise.all([
     getEventsInRange(from, to),
-    db
-      .select({
-        id: users.id,
-        name: users.name,
-      })
-      .from(users)
-      .orderBy(asc(users.name)),
+    showFilters
+      ? db
+          .select({
+            id: users.id,
+            name: users.name,
+          })
+          .from(users)
+          .orderBy(asc(users.name))
+      : Promise.resolve([]),
   ]);
   const items: EventListItem[] = events.map((event) => ({
     id: event.id,
@@ -58,6 +66,9 @@ export async function EventList({
       users={householdUsers}
       showCreateButton={showCreateButton}
       showUpcomingFilter={showUpcomingFilter}
+      showFilters={showFilters}
+      compact={compact}
+      showHeader={showHeader}
       currentTime={new Date().toISOString()}
     />
   );

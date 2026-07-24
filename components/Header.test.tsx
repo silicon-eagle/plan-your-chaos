@@ -18,9 +18,13 @@ describe("Header", () => {
     expect(screen.getByRole("img", { name: "Plan Your Chaos" })).toHaveClass(
       "pixel-art",
     );
-    expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute(
       "aria-current",
       "page",
+    );
+    expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute(
+      "href",
+      "/calendar",
     );
     expect(
       screen.getByRole("link", { name: "Events" }),
