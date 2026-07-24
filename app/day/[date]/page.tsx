@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { getDateLabel, parseDateKey } from "@/lib/calendar/utils";
 
 type DayPageProps = {
@@ -15,7 +16,12 @@ export default async function DayPage({ params }: DayPageProps) {
 
   return (
     <main>
-      <h1>Welcome to {getDateLabel(date)}</h1>
+      <section>
+        <h1>Welcome to {getDateLabel(date)}</h1>
+        <PixelButton href={`/events/new?date=${dateKey}`}>
+          Create event
+        </PixelButton>
+      </section>
     </main>
   );
 }

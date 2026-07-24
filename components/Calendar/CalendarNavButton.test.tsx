@@ -4,8 +4,8 @@ import { CalendarNavButton } from "./CalendarNavButton";
 
 describe("CalendarNavButton", () => {
   it.each([
-    ["previous", "Previous month", "PrevBtn.png", "PrevBtn-hover.png"],
-    ["next", "Next month", "NextBtn.png", "NextBtn-hover.png"],
+    ["previous", "Previous month", "prevBtn.png", "prevBtn-hover.png"],
+    ["next", "Next month", "nextBtn.png", "nextBtn-hover.png"],
   ] as const)(
     "renders the %s month sprites",
     (direction, label, defaultImage, hoverImage) => {

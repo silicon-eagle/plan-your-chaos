@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getMonthCalendar, getMonthLabel } from "@/lib/calendar/utils";
+import { CalendarNewButton } from "./CalendarNewButton";
 import { CalendarGrid } from "./CalendarGrid";
 import { CalendarNavButton } from "./CalendarNavButton";
 import styles from "./Calendar.module.css";
@@ -31,16 +32,20 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
     <section className={styles.calendar} aria-labelledby="calendar-heading">
       <header className={styles.header}>
         <CalendarNavButton
+          className={styles.previousButton}
           direction="previous"
           onClick={() => changeMonth(-1)}
         />
 
         <h2 id="calendar-heading">{getMonthLabel(visibleMonth)}</h2>
 
-        <CalendarNavButton
-          direction="next"
-          onClick={() => changeMonth(1)}
-        />
+        <div className={styles.headerActions}>
+          <CalendarNavButton
+            direction="next"
+            onClick={() => changeMonth(1)}
+          />
+          <CalendarNewButton />
+        </div>
       </header>
 
       <CalendarGrid days={days} />
