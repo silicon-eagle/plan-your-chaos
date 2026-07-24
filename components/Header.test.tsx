@@ -23,8 +23,8 @@ describe("Header", () => {
       "page",
     );
     expect(
-      screen.getByRole("link", { name: "Upcoming Events" }),
-    ).not.toHaveAttribute("aria-current");
+      screen.getByRole("link", { name: "Events" }),
+    ).toHaveAttribute("href", "/events");
     expect(screen.getByRole("link", { name: "User: Adam" })).toHaveAttribute(
       "href",
       "/user",

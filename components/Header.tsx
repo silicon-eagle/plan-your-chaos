@@ -9,7 +9,7 @@ import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 
 const navigationItems = [
   { href: "/", label: "Calendar" },
-  { href: "/upcoming", label: "Upcoming Events" },
+  { href: "/events", label: "Events" },
 ];
 
 type HeaderProps = {

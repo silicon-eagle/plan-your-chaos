@@ -14,7 +14,15 @@
 }
 
 .day.today {
+  border-image: url("/images/border_gold.png") 2 /
+    calc(2px * var(--pixel-art-scale)) stretch;
   color: var(--yellow);
+}
+
+.day.today:hover:not(:disabled),
+.day.today:focus-visible {
+  border-image: url("/images/border_gold-selected.png") 2 fill /
+    calc(2px * var(--pixel-art-scale)) stretch;
 }
 
 @media (max-width: 42rem) {

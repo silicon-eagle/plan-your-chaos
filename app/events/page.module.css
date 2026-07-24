@@ -7,8 +7,15 @@
   width: min(100%, 56rem);
 }
 
-.panel h1 {
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 2rem;
+}
+
+.header h1 {
+  margin: 0;
 }
 
 @media (max-width: 42rem) {
