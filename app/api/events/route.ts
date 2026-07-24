@@ -1,8 +1,9 @@
-import { and, asc, eq, gt, inArray, lt } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { eventAttendants, events, users } from "@/db/schema";
+import { events, users } from "@/db/schema";
 import { resolveEventIconId } from "@/lib/events/icons";
+import { getEventsInRange } from "@/lib/events/queries";
 import { parseDate, parsePositiveInteger } from "./validation";
 
 function errorResponse(message: string, status = 400) {
@@ -22,52 +23,7 @@ export async function GET(request: Request) {
     return errorResponse("from must be before to");
   }
 
-  const matchingEvents = await db
-    .select()
-    .from(events)
-    .where(
-      and(
-        lt(events.startsAt, to),
-        gt(events.endsAt, from),
-      ),
-    )
-    .orderBy(asc(events.startsAt));
-
-  if (matchingEvents.length === 0) {
-    return NextResponse.json({ events: [] });
-  }
-
-  const attendanceRows = await db
-    .select({
-      eventId: eventAttendants.eventId,
-      id: users.id,
-      name: users.name,
-      avatarPath: users.avatarPath,
-      createdAt: users.createdAt,
-    })
-    .from(eventAttendants)
-    .innerJoin(users, eq(eventAttendants.userId, users.id))
-    .where(
-      inArray(
-        eventAttendants.eventId,
-        matchingEvents.map(({ id }) => id),
-      ),
-    )
-    .orderBy(asc(users.name));
-
-  return NextResponse.json({
-    events: matchingEvents.map((event) => ({
-      ...event,
-      attendants: attendanceRows
-        .filter(({ eventId }) => eventId === event.id)
-        .map(({ id, name, avatarPath, createdAt }) => ({
-          id,
-          name,
-          avatarPath,
-          createdAt,
-        })),
-    })),
-  });
+  return NextResponse.json({ events: await getEventsInRange(from, to) });
 }
 
 export async function POST(request: Request) {

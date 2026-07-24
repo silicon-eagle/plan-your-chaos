@@ -25,6 +25,7 @@ describe("GET /api/events", () => {
       id: 1,
       title: "Dinner",
       userId: 1,
+      iconId: 4,
       startsAt: new Date("2026-07-22T18:00:00.000Z"),
       endsAt: new Date("2026-07-22T19:00:00.000Z"),
     };
@@ -45,6 +46,12 @@ describe("GET /api/events", () => {
     database.select.mockReturnValueOnce({
       from: vi.fn(() => ({ innerJoin })),
     });
+    const icon = { id: 4, name: "Cat", fileName: "cat" };
+    database.select.mockReturnValueOnce({
+      from: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue([icon]),
+      })),
+    });
 
     const response = await GET(
       new Request(
@@ -59,6 +66,7 @@ describe("GET /api/events", () => {
           ...event,
           startsAt: event.startsAt.toISOString(),
           endsAt: event.endsAt.toISOString(),
+          icon,
           attendants: [
             {
               id: attendant.id,

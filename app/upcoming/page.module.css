@@ -1,0 +1,18 @@
+.page {
+  align-items: start;
+  padding-top: 4rem;
+}
+
+.panel {
+  width: min(100%, 56rem);
+}
+
+.panel h1 {
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 42rem) {
+  .page {
+    padding: 1rem;
+  }
+}

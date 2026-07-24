@@ -1,0 +1,148 @@
+.eventList {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.filters {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.filters legend {
+  margin-bottom: 0.75rem;
+  color: var(--highlight);
+}
+
+.filterOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+
+.filterOptions label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.filterOptions input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--yellow);
+}
+
+.scrollArea {
+  max-height: 34rem;
+  overflow-y: auto;
+  scrollbar-color: var(--primary) var(--background);
+}
+
+.items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  --event-accent: var(--yellow);
+
+  border-bottom: 2px solid var(--primary);
+}
+
+.item.purple {
+  --event-accent: var(--primary);
+}
+
+.item a {
+  display: grid;
+  min-height: 8rem;
+  grid-template-columns: 4px 5rem minmax(10rem, 1fr) minmax(8rem, auto);
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem 0;
+  text-decoration: none;
+}
+
+.item a:focus-visible {
+  outline: 3px solid var(--light-purple);
+  outline-offset: -3px;
+}
+
+.stripe {
+  width: 4px;
+  height: 100%;
+  background: var(--event-accent);
+}
+
+.iconFrame {
+  display: grid;
+  width: 5rem;
+  height: 5rem;
+  place-items: center;
+  border: 4px solid var(--primary);
+}
+
+.icon {
+  width: calc(16px * var(--pixel-art-scale));
+  height: calc(16px * var(--pixel-art-scale));
+  image-rendering: pixelated;
+}
+
+.eventDetails {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.eventDetails time,
+.eventDetails > span {
+  color: var(--light-purple);
+  font-size: 14px;
+}
+
+.eventDetails strong {
+  color: var(--event-accent);
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.attendants {
+  display: grid;
+  justify-self: end;
+  gap: 0.5rem;
+}
+
+.attendant {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 12px;
+}
+
+.empty {
+  margin: 0;
+  padding: 2rem 0;
+}
+
+@media (max-width: 42rem) {
+  .item a {
+    grid-template-columns: 4px 3rem minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .iconFrame {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .attendants {
+    grid-column: 3;
+    justify-self: start;
+  }
+
+  .attendant > span {
+    display: none;
+  }
+}
