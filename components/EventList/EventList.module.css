@@ -120,8 +120,10 @@
 }
 
 .attendants {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   justify-self: end;
+  justify-content: flex-end;
   gap: 0.5rem;
 }
 
@@ -155,6 +157,7 @@
   .attendants {
     grid-column: 3;
     justify-self: start;
+    justify-content: flex-start;
   }
 
   .attendant > span {
