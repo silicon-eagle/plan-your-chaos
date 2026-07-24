@@ -13,6 +13,7 @@ type EventPageProps = {
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Amsterdam",
   dateStyle: "full",
   timeStyle: "short",
 });

@@ -40,12 +40,14 @@ type EventListClientProps = {
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Amsterdam",
   weekday: "short",
   day: "2-digit",
   month: "short",
 });
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Amsterdam",
   hour: "2-digit",
   minute: "2-digit",
 });

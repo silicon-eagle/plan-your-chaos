@@ -50,6 +50,9 @@ container replacements. `docker compose down` stops and removes the containers
 without deleting that data. Do not use `docker compose down -v` unless you
 intend to permanently delete the database.
 
+Application and database date-times use `Europe/Amsterdam`, including automatic
+CET and CEST daylight-saving transitions.
+
 For an internet-facing deployment, place a reverse proxy with HTTPS in front of
 the app, restrict access to the PostgreSQL host port, and keep `.env` out of
 version control.
@@ -64,6 +67,18 @@ pnpm install
 docker compose up -d postgres
 pnpm db:seed
 pnpm dev
+```
+
+Stop the database container without deleting its data:
+
+```bash
+docker compose stop postgres
+```
+
+To permanently delete the development database and its Docker volume:
+
+```bash
+docker compose down -v
 ```
 
 Compose creates a separate, non-superuser application login from
@@ -94,5 +109,7 @@ override the component variables.
 - `pnpm db:seed` - seed development data
 - `pnpm db:studio` - open Drizzle Studio
 - `docker compose up --build` - build and start the app and PostgreSQL
+- `docker compose up -d postgres` - start only PostgreSQL
+- `docker compose stop postgres` - stop PostgreSQL without deleting its data
 - `docker compose down` - stop the app and PostgreSQL
 - `docker compose down -v` - stop all services and delete the database

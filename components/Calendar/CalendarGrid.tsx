@@ -1,4 +1,7 @@
-import type { CalendarDayData } from "@/lib/calendar/utils";
+import {
+  formatDateKey,
+  type CalendarDayData,
+} from "@/lib/calendar/utils";
 import { CalendarDay } from "./CalendarDay";
 import styles from "./CalendarGrid.module.css";
 
@@ -28,13 +31,7 @@ export function CalendarGrid({
           <CalendarDay
             key={day.date.getTime()}
             day={day}
-            eventCount={eventCounts[
-              [
-                day.date.getFullYear(),
-                String(day.date.getMonth() + 1).padStart(2, "0"),
-                String(day.date.getDate()).padStart(2, "0"),
-              ].join("-")
-            ] ?? 0}
+            eventCount={eventCounts[formatDateKey(day.date)] ?? 0}
           />
         ))}
       </div>

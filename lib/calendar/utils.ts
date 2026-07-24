@@ -90,6 +90,7 @@ export function getMonthCalendar(
 
 export function getMonthLabel(date: Date) {
   return date.toLocaleDateString("en-GB", {
+    timeZone: "Europe/Amsterdam",
     month: "short",
     year: "numeric",
   });
@@ -97,6 +98,7 @@ export function getMonthLabel(date: Date) {
 
 export function getDateLabel(date: Date) {
   return date.toLocaleDateString("en-GB", {
+    timeZone: "Europe/Amsterdam",
     weekday: "long",
     year: "numeric",
     month: "long",
