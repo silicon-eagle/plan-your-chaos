@@ -35,18 +35,18 @@ describe("Calendar", () => {
     render(<Calendar initialDate={new Date(2026, 0, 15)} />);
 
     expect(
-      screen.getByRole("heading", { name: "January 2026" }),
+      screen.getByRole("heading", { name: "Jan 2026" }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
     expect(
-      screen.getByRole("heading", { name: "December 2025" }),
+      screen.getByRole("heading", { name: "Dec 2025" }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Next month" }));
     fireEvent.click(screen.getByRole("button", { name: "Next month" }));
     expect(
-      screen.getByRole("heading", { name: "February 2026" }),
+      screen.getByRole("heading", { name: "Feb 2026" }),
     ).toBeInTheDocument();
   });
 
@@ -58,7 +58,7 @@ describe("Calendar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Current month" }));
 
     expect(
-      screen.getByRole("heading", { name: "July 2026" }),
+      screen.getByRole("heading", { name: "Jul 2026" }),
     ).toBeInTheDocument();
   });
 

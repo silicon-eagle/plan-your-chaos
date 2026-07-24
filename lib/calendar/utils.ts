@@ -90,7 +90,7 @@ export function getMonthCalendar(
 
 export function getMonthLabel(date: Date) {
   return date.toLocaleDateString("en-GB", {
-    month: "long",
+    month: "short",
     year: "numeric",
   });
 }

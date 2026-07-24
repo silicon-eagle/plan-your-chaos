@@ -120,9 +120,13 @@
   gap: 0.35rem;
 }
 
-.eventDetails time,
-.eventDetails > span {
+.eventDetails time {
   color: var(--light-purple);
+  font-size: 14px;
+}
+
+.eventDetails > span {
+  color: var(--primary);
   font-size: 14px;
 }
 

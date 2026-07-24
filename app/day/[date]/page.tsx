@@ -24,7 +24,7 @@ export default async function DayPage({ params }: DayPageProps) {
     <main className={styles.page}>
       <section className={styles.content}>
         <DayNavigation date={date} />
-        <h1>Welcome to {getDateLabel(date)}</h1>
+        <h2>{getDateLabel(date)}</h2>
         <EventList from={date} to={addDays(date, 1)} />
       </section>
     </main>

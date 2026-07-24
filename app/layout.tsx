@@ -7,6 +7,7 @@ import "./globals.css";
 const defaultFont = localFont({
   src: "./fonts/Silkscreen-Regular.ttf",
   variable: "--font-default",
+  declarations: [{ prop: "size-adjust", value: "100%" }],
   display: "swap",
   preload: false,
 });
