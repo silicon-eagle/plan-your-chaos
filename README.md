@@ -2,22 +2,75 @@
 
 A household calendar built with Next.js, TypeScript, and PostgreSQL.
 
-## Development
+## Docker deployment
+
+Install Docker with the Compose plugin on the host, then clone the repository
+and create the environment file:
 
 ```bash
 cp .env.example .env
-docker compose up -d
-pnpm db:migrate
+```
+
+Before deployment, replace both example passwords in `.env` with strong,
+independent values. You can also add `APP_PORT` to change the host port from its
+default of `3000`.
+
+Build and start the complete stack:
+
+```bash
+docker compose up --build -d
+```
+
+This starts three services in order:
+
+1. `postgres` starts PostgreSQL and waits until it is healthy.
+2. `migrate` applies all Drizzle migrations and idempotently seeds the initial
+   users and event icons.
+3. `app` starts the production Next.js standalone server after initialization
+   succeeds.
+
+The application is available at `http://localhost:3000`, or at the port set by
+`APP_PORT`. Check the deployment with:
+
+```bash
+docker compose ps
+docker compose logs -f app
+```
+
+To deploy a newer version, pull the changes and recreate the images and
+containers:
+
+```bash
+git pull
+docker compose up --build -d
+```
+
+The PostgreSQL data persists in the `postgres-data` Docker volume across
+container replacements. `docker compose down` stops and removes the containers
+without deleting that data. Do not use `docker compose down -v` unless you
+intend to permanently delete the database.
+
+For an internet-facing deployment, place a reverse proxy with HTTPS in front of
+the app, restrict access to the PostgreSQL host port, and keep `.env` out of
+version control.
+
+## Development
+
+To run Next.js on the host while keeping PostgreSQL in Docker:
+
+```bash
+cp .env.example .env
+pnpm install
+docker compose up -d postgres
+pnpm db:seed
 pnpm dev
 ```
 
-The PostgreSQL data is persisted in the `postgres-data` Docker volume.
 Compose creates a separate, non-superuser application login from
-`POSTGRES_APP_USER` and `POSTGRES_APP_PASSWORD`. Change the example passwords
-before using this setup outside local development.
-The application builds its connection URL from the PostgreSQL environment
-variables and fails at startup if any are missing. Production environments can
-provide `DATABASE_URL` to override the component variables.
+`POSTGRES_APP_USER` and `POSTGRES_APP_PASSWORD`. The application builds its
+connection URL from the PostgreSQL environment variables and fails at startup
+if any are missing. Environments outside Compose can provide `DATABASE_URL` to
+override the component variables.
 
 ## Colour Palette
 
@@ -40,6 +93,6 @@ provide `DATABASE_URL` to override the component variables.
 - `pnpm db:migrate` - apply database migrations
 - `pnpm db:seed` - seed development data
 - `pnpm db:studio` - open Drizzle Studio
-- `docker compose down` - stop PostgreSQL
-- `docker compose down -v` - stop PostgreSQL and delete the database
-- `docker compose up -d` - start docker and PostgreSQL
+- `docker compose up --build` - build and start the app and PostgreSQL
+- `docker compose down` - stop the app and PostgreSQL
+- `docker compose down -v` - stop all services and delete the database

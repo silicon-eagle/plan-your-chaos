@@ -14,6 +14,9 @@ const defaultFont = localFont({
 export const metadata: Metadata = {
   title: "Plan Your Chaos",
   description: "A local-first household calendar.",
+  icons: {
+    icon: "/images/logoSmall.png",
+  },
 };
 
 export default async function RootLayout({
