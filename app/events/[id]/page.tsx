@@ -1,8 +1,9 @@
 import { asc, eq } from "drizzle-orm";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import { db } from "@/db";
-import { eventAttendants, events, users } from "@/db/schema";
+import { eventAttendants, events, icons, users } from "@/db/schema";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import styles from "../events.module.css";
 
@@ -32,9 +33,12 @@ export default async function EventPage({ params }: EventPageProps) {
       allDay: events.allDay,
       notes: events.notes,
       ownerName: users.name,
+      iconName: icons.name,
+      iconFileName: icons.fileName,
     })
     .from(events)
     .innerJoin(users, eq(events.userId, users.id))
+    .leftJoin(icons, eq(events.iconId, icons.id))
     .where(eq(events.id, eventId))
     .limit(1);
 
@@ -59,7 +63,19 @@ export default async function EventPage({ params }: EventPageProps) {
         className={`pixel-border ${styles.panel}`}
         aria-labelledby="event-heading"
       >
-        <h1 id="event-heading">{event.title}</h1>
+        <div className={styles.eventHeading}>
+          {event.iconFileName && (
+            <Image
+              className={styles.eventIcon}
+              src={`/icons/yellow/${event.iconFileName}-yellow.png`}
+              alt={event.iconName ? `${event.iconName} icon` : ""}
+              width={16}
+              height={16}
+              unoptimized
+            />
+          )}
+          <h1 id="event-heading">{event.title}</h1>
+        </div>
 
         <dl className={styles.details}>
           <div>

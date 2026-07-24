@@ -16,6 +16,12 @@
   gap: 1rem;
 }
 
+.eventHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .details {
   margin: 0;
 }
