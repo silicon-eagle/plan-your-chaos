@@ -19,6 +19,15 @@ export const users = pgTable("users", {
     .notNull(),
 });
 
+export const icons = pgTable(
+  "icons",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    fileName: text("file_name").notNull(),
+  },
+);
+
 export const events = pgTable(
   "events",
   {
@@ -31,6 +40,8 @@ export const events = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     notes: text("notes"),
+    iconId: integer("icon_id")
+      .references(() => icons.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -38,7 +49,10 @@ export const events = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [index("events_user_id_idx").on(table.userId)],
+  (table) => [
+    index("events_user_id_idx").on(table.userId),
+    index("events_icon_id_idx").on(table.iconId),
+  ],
 );
 
 export const eventAttendants = pgTable(
@@ -62,10 +76,18 @@ export const usersRelations = relations(users, ({ many }) => ({
   eventAttendances: many(eventAttendants),
 }));
 
+export const iconsRelations = relations(icons, ({ many }) => ({
+  events: many(events),
+}));
+
 export const eventsRelations = relations(events, ({ many, one }) => ({
   user: one(users, {
     fields: [events.userId],
     references: [users.id],
+  }),
+  icon: one(icons, {
+    fields: [events.iconId],
+    references: [icons.id],
   }),
   attendants: many(eventAttendants),
 }));
