@@ -9,13 +9,19 @@ const seedUsers = [
 ];
 
 const seedIcons = [
+  { name: "Beer", fileName: "beer" },
   { name: "Car", fileName: "car" },
   { name: "Cat", fileName: "cat" },
   { name: "Coffee", fileName: "coffee" },
+  { name: "Cross", fileName: "cross" },
   { name: "Docs", fileName: "docs" },
+  { name: "Food", fileName: "food" },
+  { name: "Heart", fileName: "heart" },
+  { name: "Home", fileName: "home" },
   { name: "Moon", fileName: "moon" },
   { name: "Music", fileName: "music" },
   { name: "Pawn", fileName: "pawn" },
+  { name: "Scissors", fileName: "scissors" },
   { name: "Skull", fileName: "skull" },
   { name: "Star", fileName: "star" },
 ];
