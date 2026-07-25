@@ -43,9 +43,17 @@
   image-rendering: pixelated;
 }
 
+.fallbackMarker {
+  display: none;
+}
+
 @container (max-width: 4rem) {
-  .marker:not(:first-child) {
+  .eventMarker {
     display: none;
+  }
+
+  .fallbackMarker {
+    display: block;
   }
 }
 

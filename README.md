@@ -98,6 +98,12 @@ override the component variables.
 | Yellow       | `#F2C900` |
 | Highlight    | `#F5E580` |
 | Light Purple | `#D8C7FF` |
+| Dark Teal    | `#216B6A` |
+| Teal         | `#3FA7A3` |
+| Highlight Teal | `#82D8D2` |
+| Dark Pink    | `#A84F68` |
+| Pink         | `#E58AA4` |
+| Highlight Pink | `#F6C1D0` |
 
 ## Commands
 

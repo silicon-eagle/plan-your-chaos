@@ -8,6 +8,7 @@ import {
   getMonthLabel,
 } from "@/lib/calendar/utils";
 import { CalendarNewButton } from "./CalendarNewButton";
+import type { CalendarEventMarker } from "./CalendarDay";
 import { CalendarGrid } from "./CalendarGrid";
 import { CalendarNavButton } from "./CalendarNavButton";
 import { CalendarNowButton } from "./CalendarNowButton";
@@ -20,7 +21,28 @@ type CalendarProps = {
 type CalendarEventRange = {
   startsAt: Date;
   endsAt: Date;
+  marker: CalendarEventMarker;
 };
+
+function getEventMarker(attendantNames: string[]): CalendarEventMarker {
+  const names = new Set(attendantNames.map((name) => name.toLowerCase()));
+  const includesTim = names.has("tim");
+  const includesVeerle = names.has("veerle");
+
+  if (includesTim && includesVeerle) {
+    return "together";
+  }
+
+  if (includesTim) {
+    return "tim";
+  }
+
+  if (includesVeerle) {
+    return "veerle";
+  }
+
+  return "default";
+}
 
 export function Calendar({ initialDate = new Date() }: CalendarProps) {
   const [visibleMonth, setVisibleMonth] = useState(
@@ -44,7 +66,7 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
   );
   const rangeFromValue = rangeFrom.toISOString();
   const rangeToValue = rangeTo.toISOString();
-  const eventCounts = Object.fromEntries(
+  const eventMarkers = Object.fromEntries(
     days.map((day) => {
       const dayStart = new Date(
         day.date.getFullYear(),
@@ -52,11 +74,13 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
         day.date.getDate(),
       );
       const dayEnd = addDays(dayStart, 1);
-      const count = eventRanges.filter(
-        (event) => event.startsAt < dayEnd && event.endsAt > dayStart,
-      ).length;
+      const markers = eventRanges
+        .filter(
+          (event) => event.startsAt < dayEnd && event.endsAt > dayStart,
+        )
+        .map((event) => event.marker);
 
-      return [formatDateKey(day.date), count];
+      return [formatDateKey(day.date), markers];
     }),
   );
 
@@ -97,14 +121,30 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
             typeof event !== "object" ||
             !("startsAt" in event) ||
             !("endsAt" in event) ||
+            !("attendants" in event) ||
             typeof event.startsAt !== "string" ||
-            typeof event.endsAt !== "string"
+            typeof event.endsAt !== "string" ||
+            !Array.isArray(event.attendants)
           ) {
             throw new Error("Event response contains an invalid event");
           }
 
           const startsAt = new Date(event.startsAt);
           const endsAt = new Date(event.endsAt);
+          const attendantNames = event.attendants.map((attendant) => {
+            if (
+              !attendant ||
+              typeof attendant !== "object" ||
+              !("name" in attendant) ||
+              typeof attendant.name !== "string"
+            ) {
+              throw new Error(
+                "Event response contains an invalid attendant",
+              );
+            }
+
+            return attendant.name;
+          });
 
           if (
             Number.isNaN(startsAt.getTime()) ||
@@ -113,7 +153,11 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
             throw new Error("Event response contains an invalid date");
           }
 
-          return { startsAt, endsAt };
+          return {
+            startsAt,
+            endsAt,
+            marker: getEventMarker(attendantNames),
+          };
         });
 
         setEventRanges(ranges);
@@ -172,7 +216,7 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
           {eventsError}
         </p>
       )}
-      <CalendarGrid days={days} eventCounts={eventCounts} />
+      <CalendarGrid days={days} eventMarkers={eventMarkers} />
     </section>
   );
 }

@@ -2,19 +2,22 @@ import {
   formatDateKey,
   type CalendarDayData,
 } from "@/lib/calendar/utils";
-import { CalendarDay } from "./CalendarDay";
+import {
+  CalendarDay,
+  type CalendarEventMarker,
+} from "./CalendarDay";
 import styles from "./CalendarGrid.module.css";
 
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type CalendarGridProps = {
   days: CalendarDayData[];
-  eventCounts?: Record<string, number>;
+  eventMarkers?: Record<string, CalendarEventMarker[]>;
 };
 
 export function CalendarGrid({
   days,
-  eventCounts = {},
+  eventMarkers = {},
 }: CalendarGridProps) {
   return (
     <div className={styles.calendar} aria-label="Calendar days">
@@ -31,7 +34,7 @@ export function CalendarGrid({
           <CalendarDay
             key={day.date.getTime()}
             day={day}
-            eventCount={eventCounts[formatDateKey(day.date)] ?? 0}
+            eventMarkers={eventMarkers[formatDateKey(day.date)]}
           />
         ))}
       </div>

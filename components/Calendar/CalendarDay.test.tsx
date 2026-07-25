@@ -22,7 +22,7 @@ describe("CalendarDay", () => {
     expect(screen.getByText("15")).toHaveAttribute("datetime", "2026-01-15");
   });
 
-  it("renders one marker for every event", () => {
+  it("renders attendee markers and the compact fallback", () => {
     render(
       <CalendarDay
         day={{
@@ -30,7 +30,7 @@ describe("CalendarDay", () => {
           isCurrentMonth: true,
           isToday: false,
         }}
-        eventCount={3}
+        eventMarkers={["tim", "veerle", "together"]}
       />,
     );
 
@@ -38,7 +38,16 @@ describe("CalendarDay", () => {
       name: "Thursday, 15 January 2026, 3 events",
     });
     expect(
+      link.querySelector('img[src="/icons/eventMarker-tim.png"]'),
+    ).toBeInTheDocument();
+    expect(
+      link.querySelector('img[src="/icons/eventMarker-veerle.png"]'),
+    ).toBeInTheDocument();
+    expect(
+      link.querySelector('img[src="/icons/eventMarker-together.png"]'),
+    ).toBeInTheDocument();
+    expect(
       link.querySelectorAll('img[src="/icons/eventMarker.png"]'),
-    ).toHaveLength(3);
+    ).toHaveLength(1);
   });
 });

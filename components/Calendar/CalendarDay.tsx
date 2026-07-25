@@ -9,13 +9,26 @@ import styles from "./CalendarDay.module.css";
 
 type CalendarDayProps = {
   day: CalendarDayData;
-  eventCount?: number;
+  eventMarkers?: CalendarEventMarker[];
 };
 
-export function CalendarDay({ day, eventCount = 0 }: CalendarDayProps) {
+export type CalendarEventMarker = "tim" | "veerle" | "together" | "default";
+
+const markerPaths: Record<CalendarEventMarker, string> = {
+  tim: "/icons/eventMarker-tim.png",
+  veerle: "/icons/eventMarker-veerle.png",
+  together: "/icons/eventMarker-together.png",
+  default: "/icons/eventMarker.png",
+};
+
+export function CalendarDay({
+  day,
+  eventMarkers = [],
+}: CalendarDayProps) {
   const dateKey = formatDateKey(day.date);
   const label = getDateLabel(day.date);
   const todayLabel = day.isToday ? `${label}, today` : label;
+  const eventCount = eventMarkers.length;
   const accessibleLabel =
     eventCount > 0
       ? `${todayLabel}, ${eventCount} ${eventCount === 1 ? "event" : "events"}`
@@ -37,15 +50,23 @@ export function CalendarDay({ day, eventCount = 0 }: CalendarDayProps) {
       <time dateTime={dateKey}>{day.date.getDate()}</time>
       {eventCount > 0 && (
         <span className={styles.markers} aria-hidden="true">
-          {Array.from({ length: eventCount }, (_, index) => (
+          <Image
+            className={`${styles.marker} ${styles.fallbackMarker}`}
+            src={markerPaths.default}
+            alt=""
+            width={4}
+            height={4}
+            unoptimized
+          />
+          {eventMarkers.map((marker, index) => (
             <Image
-              className={styles.marker}
-              src="/icons/eventMarker.png"
+              className={`${styles.marker} ${styles.eventMarker}`}
+              src={markerPaths[marker]}
               alt=""
               width={4}
               height={4}
               unoptimized
-              key={index}
+              key={`${marker}-${index}`}
             />
           ))}
         </span>
