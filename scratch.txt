@@ -1,6 +1,0 @@
-- bier
-- eten (hamburger)
-- hartje
-- schaar (kapper)
-- kruisje
-- huisje.
