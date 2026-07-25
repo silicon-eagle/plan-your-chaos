@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { EventListClient, type EventListItem } from "./EventListClient";
+import {
+  EventListClient,
+  getEventStatus,
+  type EventListItem,
+} from "./EventListClient";
 
 const events: EventListItem[] = [
   {
@@ -47,6 +51,26 @@ describe("EventListClient", () => {
       "src",
       expect.stringContaining("/icons/purple/music-purple.png"),
     );
+  });
+
+  describe("getEventStatus", () => {
+    const event = events[0];
+
+    it("labels events later on the same Amsterdam date as today", () => {
+      expect(
+        getEventStatus(event, new Date("2026-07-24T12:00:00.000Z")),
+      ).toBe("Today");
+    });
+
+    it("uses singular grammar for events on the next day", () => {
+      expect(
+        getEventStatus(events[1], new Date("2026-07-24T12:00:00.000Z")),
+      ).toBe("In 1 day");
+    });
+
+    it("treats the end time as past", () => {
+      expect(getEventStatus(event, new Date(event.endsAt))).toBe("Past");
+    });
   });
 
   it("filters events by selected attendees", () => {

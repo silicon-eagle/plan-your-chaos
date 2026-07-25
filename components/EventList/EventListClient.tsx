@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarNewButton } from "@/components/Calendar/CalendarNewButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
+import { daysDiff } from "@/lib/calendar/utils";
 import styles from "./EventList.module.css";
 
 export type EventListItem = {
@@ -48,6 +49,9 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Amsterdam",
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
 });
@@ -63,6 +67,27 @@ function getTimeLabel(event: EventListItem) {
   return `${timeFormatter.format(startsAt)} - ${timeFormatter.format(endsAt)}`;
 }
 
+export function getEventStatus(event: EventListItem, now: Date): string {
+  const startsAt = new Date(event.startsAt);
+  const endsAt = new Date(event.endsAt);
+
+  if (now < startsAt) {
+    const daysUntil = daysDiff(now, startsAt);
+
+    if (daysUntil === 0) {
+      return "Today";
+    }
+
+    return `In ${daysUntil} ${daysUntil === 1 ? "day" : "days"}`;
+  }
+
+  if (now < endsAt) {
+    return "Ongoing";
+  }
+
+  return "Past";
+}
+
 export function EventListClient({
   events,
   users,
@@ -75,6 +100,13 @@ export function EventListClient({
 }: EventListClientProps) {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [upcomingOnly, setUpcomingOnly] = useState(false);
+  const [now, setNow] = useState(() => new Date(currentTime));
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const userFilteredEvents =
     selectedUserIds.length === 0
       ? events
@@ -85,7 +117,7 @@ export function EventListClient({
         );
   const filteredEvents = upcomingOnly
     ? userFilteredEvents.filter(
-        (event) => new Date(event.endsAt) > new Date(currentTime),
+        (event) => new Date(event.endsAt) > now,
       )
     : userFilteredEvents;
 
@@ -162,6 +194,7 @@ export function EventListClient({
             {filteredEvents.map((event, index) => {
               const colour = index % 2 === 0 ? "yellow" : "purple";
               const startsAt = new Date(event.startsAt);
+              const status = getEventStatus(event, now);
 
               return (
                 <li
@@ -186,12 +219,11 @@ export function EventListClient({
 
                     <span className={styles.eventDetails}>
                       <time dateTime={event.startsAt}>
-                        {dateFormatter.format(startsAt).toUpperCase()}
+                        {dateFormatter.format(startsAt).toUpperCase()} | {status}
                       </time>
                       <strong>{event.title}</strong>
                       <span>{getTimeLabel(event)}</span>
                     </span>
-
                     <span
                       className={styles.attendants}
                       aria-label="Attendants"

@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatDateKey, getMonthCalendar, parseDateKey } from "./utils";
+import {
+  daysDiff,
+  formatDateKey,
+  getMonthCalendar,
+  parseDateKey,
+} from "./utils";
 
 function expectDate(date: Date, year: number, month: number, day: number) {
   expect([
@@ -25,6 +30,26 @@ describe("getMonthCalendar", () => {
     expect(days.filter(({ isCurrentMonth }) => isCurrentMonth)).toHaveLength(
       31,
     );
+  });
+
+  describe("daysDiff", () => {
+    it("compares calendar dates in Amsterdam", () => {
+      expect(
+        daysDiff(
+          new Date("2026-07-24T21:30:00.000Z"),
+          new Date("2026-07-24T22:30:00.000Z"),
+        ),
+      ).toBe(1);
+    });
+
+    it("is not affected by daylight-saving changes", () => {
+      expect(
+        daysDiff(
+          new Date("2026-03-28T23:00:00.000Z"),
+          new Date("2026-03-29T22:00:00.000Z"),
+        ),
+      ).toBe(1);
+    });
   });
 
   describe("calendar date keys", () => {

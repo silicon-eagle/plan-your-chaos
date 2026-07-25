@@ -53,6 +53,27 @@ export function addDays(date: Date, days: number): Date {
   return result;
 }
 
+export function daysDiff(start: Date, end: Date): number {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Amsterdam",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+  const toDayNumber = (date: Date) => {
+    const parts = Object.fromEntries(
+      formatter
+        .formatToParts(date)
+        .filter(({ type }) => type !== "literal")
+        .map(({ type, value }) => [type, Number(value)]),
+    );
+
+    return Date.UTC(parts.year, parts.month - 1, parts.day);
+  };
+
+  return (toDayNumber(end) - toDayNumber(start)) / (24 * 60 * 60 * 1000);
+}
+
 export function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
