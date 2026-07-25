@@ -1,9 +1,7 @@
 <p align="center">
   <img
-    src="public/images/logo_full.png"
+    src="public/images/logoREADME.png"
     alt="Plan Your Chaos"
-    width="288"
-    style="image-rendering: pixelated"
   >
 </p>
 
@@ -98,20 +96,20 @@ override the component variables.
 
 ## Colour Palette
 
-| Name         | Colour    |
-| ------------ | --------- |
-| Background   | `#1A1026` |
-| Surface      | `#2E1852` |
-| Primary      | `#4B2E83` |
-| Gold         | `#DEAB15` |
-| Yellow       | `#F2C900` |
-| Highlight    | `#F5E580` |
-| Light Purple | `#D8C7FF` |
-| Dark Teal    | `#216B6A` |
-| Teal         | `#3FA7A3` |
+| Name           | Colour    |
+| -------------- | --------- |
+| Background     | `#1A1026` |
+| Surface        | `#2E1852` |
+| Primary        | `#4B2E83` |
+| Gold           | `#DEAB15` |
+| Yellow         | `#F2C900` |
+| Highlight      | `#F5E580` |
+| Light Purple   | `#D8C7FF` |
+| Dark Teal      | `#216B6A` |
+| Teal           | `#3FA7A3` |
 | Highlight Teal | `#82D8D2` |
-| Dark Pink    | `#A84F68` |
-| Pink         | `#E58AA4` |
+| Dark Pink      | `#A84F68` |
+| Pink           | `#E58AA4` |
 | Highlight Pink | `#F6C1D0` |
 
 ## Commands
