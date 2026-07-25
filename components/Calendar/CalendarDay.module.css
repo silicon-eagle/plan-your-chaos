@@ -34,17 +34,22 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 2px;
+  gap: 4px;
 }
 
 .marker {
-  width: calc(4px * var(--pixel-art-scale));
-  height: calc(4px * var(--pixel-art-scale));
   image-rendering: pixelated;
 }
 
 .fallbackMarker {
+  width: calc(4px * var(--pixel-art-scale));
+  height: calc(4px * var(--pixel-art-scale));
   display: none;
+}
+
+.eventMarker {
+  width: calc(8px * var(--pixel-art-scale));
+  height: calc(8px * var(--pixel-art-scale));
 }
 
 @container (max-width: 4rem) {

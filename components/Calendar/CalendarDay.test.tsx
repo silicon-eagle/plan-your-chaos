@@ -38,13 +38,13 @@ describe("CalendarDay", () => {
       name: "Thursday, 15 January 2026, 3 events",
     });
     expect(
-      link.querySelector('img[src="/icons/eventMarker-tim.png"]'),
+      link.querySelector('img[src="/icons/eventMarkerBig-tim.png"]'),
     ).toBeInTheDocument();
     expect(
-      link.querySelector('img[src="/icons/eventMarker-veerle.png"]'),
+      link.querySelector('img[src="/icons/eventMarkerBig-veerle.png"]'),
     ).toBeInTheDocument();
     expect(
-      link.querySelector('img[src="/icons/eventMarker-together.png"]'),
+      link.querySelector('img[src="/icons/eventMarkerBig-together.png"]'),
     ).toBeInTheDocument();
     expect(
       link.querySelectorAll('img[src="/icons/eventMarker.png"]'),

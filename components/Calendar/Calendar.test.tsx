@@ -104,13 +104,13 @@ describe("Calendar", () => {
 
     await waitFor(() => {
       expect(
-        day.querySelector('img[src="/icons/eventMarker-tim.png"]'),
+        day.querySelector('img[src="/icons/eventMarkerBig-tim.png"]'),
       ).toBeInTheDocument();
       expect(
-        day.querySelector('img[src="/icons/eventMarker-veerle.png"]'),
+        day.querySelector('img[src="/icons/eventMarkerBig-veerle.png"]'),
       ).toBeInTheDocument();
       expect(
-        day.querySelector('img[src="/icons/eventMarker-together.png"]'),
+        day.querySelector('img[src="/icons/eventMarkerBig-together.png"]'),
       ).toBeInTheDocument();
     });
   });

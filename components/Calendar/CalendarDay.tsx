@@ -15,9 +15,9 @@ type CalendarDayProps = {
 export type CalendarEventMarker = "tim" | "veerle" | "together" | "default";
 
 const markerPaths: Record<CalendarEventMarker, string> = {
-  tim: "/icons/eventMarker-tim.png",
-  veerle: "/icons/eventMarker-veerle.png",
-  together: "/icons/eventMarker-together.png",
+  tim: "/icons/eventMarkerBig-tim.png",
+  veerle: "/icons/eventMarkerBig-veerle.png",
+  together: "/icons/eventMarkerBig-together.png",
   default: "/icons/eventMarker.png",
 };
 
@@ -63,8 +63,8 @@ export function CalendarDay({
               className={`${styles.marker} ${styles.eventMarker}`}
               src={markerPaths[marker]}
               alt=""
-              width={4}
-              height={4}
+              width={8}
+              height={8}
               unoptimized
               key={`${marker}-${index}`}
             />
