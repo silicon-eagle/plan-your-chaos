@@ -1,5 +1,10 @@
 <p align="center">
-  <img src="public/images/logo_full.png" alt="Plan Your Chaos" width="192">
+  <img
+    src="public/images/logo_full.png"
+    alt="Plan Your Chaos"
+    width="288"
+    style="image-rendering: pixelated"
+  >
 </p>
 
 # Plan Your Chaos
