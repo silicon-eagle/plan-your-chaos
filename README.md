@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/images/logo_full.png" alt="Plan Your Chaos" width="192">
+</p>
+
 # Plan Your Chaos
 
 A household calendar built with Next.js, TypeScript, and PostgreSQL.
