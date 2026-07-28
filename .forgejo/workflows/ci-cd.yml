@@ -40,6 +40,16 @@ jobs:
         run: pnpm test
 
       - name: Build application
+        env:
+          POSTGRES_USER: build
+          POSTGRES_PASSWORD: build
+          POSTGRES_DB: build
+          POSTGRES_APP_USER: build
+          POSTGRES_APP_PASSWORD: build
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          TZ: Europe/Amsterdam
+          NEXT_TELEMETRY_DISABLED: "1"
         run: pnpm build
 
   build-image:
