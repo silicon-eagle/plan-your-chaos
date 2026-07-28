@@ -90,10 +90,10 @@ jobs:
             --tag "${REGISTRY}/${IMAGE_NAME}:latest" \
             .
 
-      - name: Build migrations image
+      - name: Build database tools image
         run: |
           docker build \
-            --target migrations \
+            --target database-tools \
             --tag "${REGISTRY}/${IMAGE_NAME}:migrations-${{ forgejo.sha }}" \
             --tag "${REGISTRY}/${IMAGE_NAME}:migrations-latest" \
             .
@@ -103,7 +103,7 @@ jobs:
           docker push "${REGISTRY}/${IMAGE_NAME}:${{ forgejo.sha }}"
           docker push "${REGISTRY}/${IMAGE_NAME}:latest"
 
-      - name: Push migrations images
+      - name: Push database tools images
         run: |
           docker push "${REGISTRY}/${IMAGE_NAME}:migrations-${{ forgejo.sha }}"
           docker push "${REGISTRY}/${IMAGE_NAME}:migrations-latest"
@@ -159,7 +159,7 @@ jobs:
             "cd '${DEPLOY_PATH}' \
               && docker compose up -d postgres"
 
-      - name: Run migrations
+      - name: Run migrations and seed
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
