@@ -52,8 +52,8 @@ jobs:
           NEXT_TELEMETRY_DISABLED: "1"
         run: pnpm build
 
-  build-image:
-    name: Build and publish image
+  build-images:
+    name: Build and publish images
     runs-on: node-22
     needs:
       - validate
@@ -82,26 +82,37 @@ jobs:
               --username "${REGISTRY_USERNAME}" \
               --password-stdin
 
-      - name: Build image
+      - name: Build application image
         run: |
           docker build \
+            --target runner \
             --tag "${REGISTRY}/${IMAGE_NAME}:${{ forgejo.sha }}" \
             --tag "${REGISTRY}/${IMAGE_NAME}:latest" \
             .
 
-      - name: Push commit image
+      - name: Build migrations image
+        run: |
+          docker build \
+            --target migrations \
+            --tag "${REGISTRY}/${IMAGE_NAME}:migrations-${{ forgejo.sha }}" \
+            --tag "${REGISTRY}/${IMAGE_NAME}:migrations-latest" \
+            .
+
+      - name: Push application images
         run: |
           docker push "${REGISTRY}/${IMAGE_NAME}:${{ forgejo.sha }}"
-
-      - name: Push latest image
-        run: |
           docker push "${REGISTRY}/${IMAGE_NAME}:latest"
+
+      - name: Push migrations images
+        run: |
+          docker push "${REGISTRY}/${IMAGE_NAME}:migrations-${{ forgejo.sha }}"
+          docker push "${REGISTRY}/${IMAGE_NAME}:migrations-latest"
 
   deploy:
     name: Deploy
     runs-on: node-22
     needs:
-      - build-image
+      - build-images
 
     if: forgejo.event_name == 'push' && forgejo.ref == 'refs/heads/main'
 
@@ -124,7 +135,7 @@ jobs:
           ssh-keyscan -H "${DEPLOY_HOST}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Deploy on erebor
+      - name: Pull deployment images
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -134,9 +145,43 @@ jobs:
             -i ~/.ssh/deploy_key \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "cd '${DEPLOY_PATH}' \
-              && docker compose pull app \
-              && docker compose up -d --no-deps app \
-              && docker image prune -f"
+              && docker compose pull app migrate"
+
+      - name: Start database
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_PATH}' \
+              && docker compose up -d postgres"
+
+      - name: Run migrations
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_PATH}' \
+              && docker compose run --rm migrate"
+
+      - name: Deploy application
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_PATH}' \
+              && docker compose up -d --no-deps --force-recreate app"
 
       - name: Verify deployment
         env:
@@ -149,7 +194,11 @@ jobs:
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "cd '${DEPLOY_PATH}' \
               && timeout 90 sh -c \
-                'until docker compose ps app --format json | grep -q healthy; do sleep 3; done'"
+                'until [ \"\$(docker inspect \
+                  --format=\"{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}\" \
+                  plan-your-chaos 2>/dev/null)\" = \"healthy\" ]; do
+                    sleep 3
+                done'"
 
       - name: Show deployed containers
         if: always()
@@ -161,4 +210,15 @@ jobs:
           ssh \
             -i ~/.ssh/deploy_key \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "cd '${DEPLOY_PATH}' && docker compose ps"
+            "cd '${DEPLOY_PATH}' && docker compose ps --all"
+
+      - name: Remove unused images
+        if: success()
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "docker image prune --force"
