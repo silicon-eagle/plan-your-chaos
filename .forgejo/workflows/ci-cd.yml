@@ -64,6 +64,11 @@ jobs:
       - name: Check out repository
         uses: https://data.forgejo.org/actions/checkout@v6
 
+      - name: Install Docker CLI
+        run: |
+          apt-get update
+          apt-get install --yes docker.io
+
       - name: Verify Docker
         run: docker info
 
