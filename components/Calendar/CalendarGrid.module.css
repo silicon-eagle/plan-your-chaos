@@ -1,0 +1,31 @@
+.calendar {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.weekdays,
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.weekdays span {
+  overflow: hidden;
+  color: var(--light-purple);
+  font-size: 14px;
+  text-align: center;
+  text-overflow: clip;
+}
+
+@media (max-width: 42rem) {
+  .calendar,
+  .weekdays,
+  .days {
+    gap: 0.25rem;
+  }
+
+  .weekdays span {
+    font-size: 10px;
+  }
+}

@@ -1,0 +1,122 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { PixelButton } from "@/components/PixelButton/PixelButton";
+import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
+
+const navigationItems = [
+  { href: "/", label: "Home" },
+  { href: "/calendar", label: "Calendar" },
+  { href: "/events", label: "Events" },
+];
+
+type HeaderProps = {
+  activeUserName: string;
+  activeUserAvatarPath: string | null;
+};
+
+export function Header({
+  activeUserName,
+  activeUserAvatarPath,
+}: HeaderProps) {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
+
+  function renderNavigation(className: string) {
+    return (
+      <nav className={className} aria-label="Main navigation">
+        {navigationItems.map(({ href, label }) => (
+          <PixelButton
+            key={href}
+            href={href}
+            selected={pathname === href}
+            onClick={() => setMenuOpen(false)}
+          >
+            {label}
+          </PixelButton>
+        ))}
+      </nav>
+    );
+  }
+
+  function renderActiveUser(className: string) {
+    return (
+      <PixelButton
+        className={className}
+        href="/user"
+        aria-label={`User: ${activeUserName}`}
+        selected={pathname === "/user"}
+        onClick={() => setMenuOpen(false)}
+      >
+        User:
+        <UserAvatar
+          name={activeUserName}
+          src={activeUserAvatarPath}
+          decorative
+        />
+      </PixelButton>
+    );
+  }
+
+  return (
+    <header className="site-header">
+      <Link className="site-title" href="/">
+        <picture>
+          <source media="(max-width: 42rem)" srcSet="/images/logo.png" />
+          <Image
+            className="pixel-art"
+            src="/images/logo_flat.png"
+            alt="Plan Your Chaos"
+            width={176}
+            height={64}
+            unoptimized
+          />
+        </picture>
+      </Link>
+
+      <div className="desktop-actions">
+        {renderNavigation("desktop-navigation")}
+        {renderActiveUser("active-user-link desktop-user")}
+      </div>
+
+      <PixelButton
+        className="menu-button"
+        type="button"
+        selected={menuOpen}
+        aria-expanded={menuOpen}
+        aria-controls="mobile-navigation"
+        aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+        onClick={() => setMenuOpen((open) => !open)}
+      >
+        <span />
+        <span />
+        <span />
+      </PixelButton>
+
+      {menuOpen && (
+        <div id="mobile-navigation">
+          {renderNavigation("mobile-navigation")}
+          {renderActiveUser("active-user-link mobile-user")}
+        </div>
+      )}
+    </header>
+  );
+}

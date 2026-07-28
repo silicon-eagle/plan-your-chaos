@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<p align="center">
+  <img
+    src="public/images/logoREADME.png"
+    alt="Plan Your Chaos"
+  >
+</p>
 
-## Getting Started
+# Plan Your Chaos
 
-First, run the development server:
+A household calendar built with Next.js, TypeScript, and PostgreSQL.
+
+## Docker deployment
+
+Install Docker with the Compose plugin on the host, then clone the repository
+and create the environment file:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Before deployment, replace both example passwords in `.env` with strong,
+independent values. You can also add `APP_PORT` to change the host port from its
+default of `3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Build and start the complete stack:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+docker compose up --build -d
+```
 
-## Learn More
+This starts three services in order:
 
-To learn more about Next.js, take a look at the following resources:
+1. `postgres` starts PostgreSQL and waits until it is healthy.
+2. `migrate` applies all Drizzle migrations and idempotently seeds the initial
+   users and event icons.
+3. `app` starts the production Next.js standalone server after initialization
+   succeeds.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The application is available at `http://localhost:3000`, or at the port set by
+`APP_PORT`. Check the deployment with:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+docker compose ps
+docker compose logs -f app
+```
 
-## Deploy on Vercel
+To deploy a newer version, pull the changes and recreate the images and
+containers:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+git pull
+docker compose up --build -d
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The PostgreSQL data persists in the `postgres-data` Docker volume across
+container replacements. `docker compose down` stops and removes the containers
+without deleting that data. Do not use `docker compose down -v` unless you
+intend to permanently delete the database.
+
+Application and database date-times use `Europe/Amsterdam`, including automatic
+CET and CEST daylight-saving transitions.
+
+For an internet-facing deployment, place a reverse proxy with HTTPS in front of
+the app, restrict access to the PostgreSQL host port, and keep `.env` out of
+version control.
+
+## Development
+
+To run Next.js on the host while keeping PostgreSQL in Docker:
+
+```bash
+cp .env.example .env
+pnpm install
+docker compose up -d postgres
+pnpm db:seed
+pnpm dev
+```
+
+Stop the database container without deleting its data:
+
+```bash
+docker compose stop postgres
+```
+
+To permanently delete the development database and its Docker volume:
+
+```bash
+docker compose down -v
+```
+
+Compose creates a separate, non-superuser application login from
+`POSTGRES_APP_USER` and `POSTGRES_APP_PASSWORD`. The application builds its
+connection URL from the PostgreSQL environment variables and fails at startup
+if any are missing. Environments outside Compose can provide `DATABASE_URL` to
+override the component variables.
+
+## Colour Palette
+
+| Name           | Colour    |
+| -------------- | --------- |
+| Background     | `#1A1026` |
+| Surface        | `#2E1852` |
+| Primary        | `#4B2E83` |
+| Gold           | `#DEAB15` |
+| Yellow         | `#F2C900` |
+| Highlight      | `#F5E580` |
+| Light Purple   | `#D8C7FF` |
+| Dark Teal      | `#216B6A` |
+| Teal           | `#3FA7A3` |
+| Highlight Teal | `#82D8D2` |
+| Dark Pink      | `#A84F68` |
+| Pink           | `#E58AA4` |
+| Highlight Pink | `#F6C1D0` |
+
+## Commands
+
+- `pnpm test` - run unit tests
+- `pnpm lint` - run ESLint
+- `pnpm build` - create a production build
+- `pnpm db:generate` - generate database migrations
+- `pnpm db:migrate` - apply database migrations
+- `pnpm db:seed` - seed development data
+- `pnpm db:studio` - open Drizzle Studio
+- `docker compose up --build` - build and start the app and PostgreSQL
+- `docker compose up -d postgres` - start only PostgreSQL
+- `docker compose stop postgres` - stop PostgreSQL without deleting its data
+- `docker compose down` - stop the app and PostgreSQL
+- `docker compose down -v` - stop all services and delete the database

@@ -1,0 +1,15 @@
+.page {
+  align-items: start;
+  padding-top: var(--page-top-spacing);
+}
+
+.panel {
+  width: min(100%, 66rem);
+}
+
+@media (max-width: 42rem) {
+  .page {
+    padding: var(--page-top-spacing) 0.5rem 0.5rem;
+  }
+
+}

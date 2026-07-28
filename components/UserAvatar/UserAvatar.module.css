@@ -1,0 +1,15 @@
+.avatar,
+.fallback {
+  width: calc(16px * var(--pixel-art-scale));
+  height: calc(16px * var(--pixel-art-scale));
+  flex: 0 0 auto;
+  image-rendering: pixelated;
+}
+
+.fallback {
+  display: inline-grid;
+  place-items: center;
+  background: var(--primary);
+  color: var(--light-purple);
+  font-size: 16px;
+}

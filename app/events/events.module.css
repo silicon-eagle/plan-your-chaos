@@ -1,0 +1,233 @@
+.page {
+  align-items: start;
+  padding-top: var(--page-top-spacing);
+}
+
+.panel {
+  position: relative;
+  display: grid;
+  width: min(100%, 42rem);
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+.details,
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.eventHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-right: 5rem;
+}
+
+.eventActions {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.deleteConfirmation {
+  position: absolute;
+  z-index: 2;
+  top: calc(16px * var(--pixel-art-scale) + 0.75rem);
+  right: 0;
+  width: max-content;
+  padding: 1rem;
+  background: var(--background);
+}
+
+.deleteConfirmation p {
+  margin: 0 0 1rem;
+}
+
+.confirmationActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.confirmationActions button {
+  padding: 0.5rem 0.75rem;
+}
+
+.details {
+  margin: 0;
+}
+
+.details div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.details dt,
+.label {
+  color: var(--highlight);
+}
+
+.details dd {
+  margin: 0;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.iconPicker {
+  position: relative;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.iconPickerControls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.eventIcon {
+  width: calc(16px * var(--pixel-art-scale));
+  height: calc(16px * var(--pixel-art-scale));
+  image-rendering: pixelated;
+}
+
+.iconSelectButton {
+  padding: 0.5rem 0.75rem;
+}
+
+.iconGrid {
+  display: grid;
+  width: min(100%, 18rem);
+  grid-template-columns: repeat(auto-fit, minmax(3rem, 1fr));
+  gap: 0.5rem;
+  border: 4px solid var(--primary);
+  padding: 0.5rem;
+  background: var(--background);
+}
+
+.iconOption {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 4px solid transparent;
+  border-radius: 0;
+  padding: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.iconOption:hover,
+.iconOption:focus-visible,
+.iconOption[aria-pressed="true"] {
+  border-color: var(--yellow);
+}
+
+.iconOption:focus-visible {
+  outline: 3px solid var(--light-purple);
+  outline-offset: 2px;
+}
+
+.input {
+  width: 100%;
+  border: 4px solid var(--primary);
+  border-radius: 0;
+  padding: 0.75rem;
+  background: var(--background);
+  color: var(--light-purple);
+  font: inherit;
+}
+
+.input:focus-visible {
+  border-color: var(--yellow);
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.dateTimeField {
+  position: relative;
+}
+
+.dateTimeField::after {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 0.75rem;
+  width: calc(16px * var(--pixel-art-scale));
+  height: calc(16px * var(--pixel-art-scale));
+  transform: translateY(-50%);
+  background-color: var(--background);
+  background-image: url("/images/buttons/calendarBtn.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  content: "";
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.dateTimeField:hover::after,
+.dateTimeField:focus-within::after {
+  background-image: url("/images/buttons/calendarBtn-hover.png");
+}
+
+textarea.input {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.attendants {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.attendantList {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attendant {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.submit,
+.createLink {
+  justify-self: start;
+  padding: 0.75rem 1rem;
+}
+
+.error {
+  margin: 0;
+  color: var(--yellow);
+}
+
+@media (max-width: 42rem) {
+  .page {
+    padding: var(--page-top-spacing) 1rem 1rem;
+  }
+
+  .panel {
+    padding: 1rem;
+  }
+
+  .eventActions {
+    top: 1rem;
+    right: 1rem;
+  }
+}

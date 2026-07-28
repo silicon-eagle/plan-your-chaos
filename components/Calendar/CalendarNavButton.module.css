@@ -1,0 +1,36 @@
+.button {
+  position: relative;
+  width: calc(16px * var(--pixel-art-scale));
+  height: calc(16px * var(--pixel-art-scale));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.hoverImage {
+  display: none;
+}
+
+.button:hover .defaultImage,
+.button:focus-visible .defaultImage {
+  display: none;
+}
+
+.button:hover .hoverImage,
+.button:focus-visible .hoverImage {
+  display: block;
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--light-purple);
+  outline-offset: 3px;
+}
