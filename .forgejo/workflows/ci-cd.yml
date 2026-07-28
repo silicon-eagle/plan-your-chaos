@@ -1,0 +1,149 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+env:
+  REGISTRY: forgejo.arda
+  IMAGE_NAME: tkelch/plan-your-chaos
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: node-22
+
+    steps:
+      - name: Check out repository
+        uses: https://data.forgejo.org/actions/checkout@v6
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm exec tsc --noEmit
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build application
+        run: pnpm build
+
+  build-image:
+    name: Build and publish image
+    runs-on: docker
+    needs:
+      - validate
+
+    if: forgejo.event_name == 'push' && forgejo.ref == 'refs/heads/main'
+
+    steps:
+      - name: Check out repository
+        uses: https://data.forgejo.org/actions/checkout@v6
+
+      - name: Verify Docker
+        run: docker info
+
+      - name: Log in to Forgejo registry
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+        run: |
+          echo "${REGISTRY_TOKEN}" |
+            docker login "${REGISTRY}" \
+              --username "${REGISTRY_USERNAME}" \
+              --password-stdin
+
+      - name: Build image
+        run: |
+          docker build \
+            --tag "${REGISTRY}/${IMAGE_NAME}:${{ forgejo.sha }}" \
+            --tag "${REGISTRY}/${IMAGE_NAME}:latest" \
+            .
+
+      - name: Push commit image
+        run: |
+          docker push "${REGISTRY}/${IMAGE_NAME}:${{ forgejo.sha }}"
+
+      - name: Push latest image
+        run: |
+          docker push "${REGISTRY}/${IMAGE_NAME}:latest"
+
+  deploy:
+    name: Deploy
+    runs-on: node-22
+    needs:
+      - build-image
+
+    if: forgejo.event_name == 'push' && forgejo.ref == 'refs/heads/main'
+
+    steps:
+      - name: Install SSH client
+        run: |
+          apt-get update
+          apt-get install --yes openssh-client
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+
+          printf '%s\n' "${DEPLOY_SSH_KEY}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh-keyscan -H "${DEPLOY_HOST}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy on erebor
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_PATH}' \
+              && docker compose pull app \
+              && docker compose up -d --no-deps app \
+              && docker image prune -f"
+
+      - name: Verify deployment
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_PATH}' \
+              && timeout 90 sh -c \
+                'until docker compose ps app --format json | grep -q healthy; do sleep 3; done'"
+
+      - name: Show deployed containers
+        if: always()
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_PATH}' && docker compose ps"
