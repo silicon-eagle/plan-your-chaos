@@ -67,4 +67,25 @@ describe("EventForm", () => {
       }),
     ).not.toBeInTheDocument();
   });
+
+  it("moves the end time to one hour after the selected start time", () => {
+    render(
+      <EventForm
+        action={action}
+        initialDate="2026-07-24"
+        users={[]}
+        activeUserId={1}
+        icons={icons}
+        defaultIconId={1}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Starts"), {
+      target: { value: "2026-07-24T23:30" },
+    });
+
+    expect(screen.getByLabelText("Ends")).toHaveValue(
+      "2026-07-25T00:30",
+    );
+  });
 });

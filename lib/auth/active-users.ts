@@ -7,13 +7,12 @@ import { cookies } from "next/headers";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 
-const ACTIVE_USER_COOKIE = "active-user-id";
+const ACTIVE_USER_COOKIE = "plan-your-chaos-active-user-id";
 const COOKIE_OPTIONS = {
   httpOnly: true,
   maxAge: 60 * 60 * 24 * 365,
   path: "/",
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
 };
 
 export async function getActiveUser() {

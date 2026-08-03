@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Header } from "@/components/Header";
 import { getActiveUser } from "@/lib/auth/active-users";
+import packageJson from "@/package.json";
 import "./globals.css";
 
 const defaultFont = localFont({
@@ -34,6 +35,9 @@ export default async function RootLayout({
           activeUserAvatarPath={activeUser.avatarPath}
         />
         {children}
+        <footer className="site-footer">
+          Plan Your Chaos v{packageJson.version}
+        </footer>
       </body>
     </html>
   );

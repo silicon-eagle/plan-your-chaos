@@ -61,9 +61,14 @@ describe("setActiveUser", () => {
 
     await expect(setActiveUser("Eve")).resolves.toEqual(user);
     expect(cookieStore.set).toHaveBeenCalledWith(
-      "active-user-id",
+      "plan-your-chaos-active-user-id",
       "2",
-      expect.any(Object),
+      {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 365,
+        path: "/",
+        sameSite: "lax",
+      },
     );
   });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import type { EventIcon } from "@/lib/events/icons";
@@ -45,6 +45,8 @@ type DateTimeFieldProps = {
   label: string;
   name: string;
   defaultValue: string;
+  inputRef?: React.Ref<HTMLInputElement>;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
 };
 
 function DateTimeField({
@@ -52,6 +54,8 @@ function DateTimeField({
   label,
   name,
   defaultValue,
+  inputRef,
+  onChange,
 }: DateTimeFieldProps) {
   return (
     <div className={styles.field}>
@@ -65,6 +69,8 @@ function DateTimeField({
           type="datetime-local"
           name={name}
           defaultValue={defaultValue}
+          ref={inputRef}
+          onChange={onChange}
           required
         />
       </div>
@@ -90,6 +96,7 @@ export function EventForm({
     initialValues?.iconId ?? defaultIconId,
   );
   const [isIconGridOpen, setIsIconGridOpen] = useState(false);
+  const endDateTimeRef = useRef<HTMLInputElement>(null);
   const selectedIcon =
     icons.find((icon) => icon.id === selectedIconId) ?? icons[0];
 
@@ -174,6 +181,14 @@ export function EventForm({
         label="Starts"
         name="startsAt"
         defaultValue={initialValues?.startsAt ?? `${initialDate}T09:00`}
+        onChange={(event) => {
+          const endDate = new Date(event.currentTarget.valueAsNumber);
+
+          if (!Number.isNaN(endDate.getTime()) && endDateTimeRef.current) {
+            endDate.setUTCHours(endDate.getUTCHours() + 1);
+            endDateTimeRef.current.valueAsNumber = endDate.getTime();
+          }
+        }}
       />
 
       <DateTimeField
@@ -181,6 +196,7 @@ export function EventForm({
         label="Ends"
         name="endsAt"
         defaultValue={initialValues?.endsAt ?? `${initialDate}T10:00`}
+        inputRef={endDateTimeRef}
       />
 
       <label className={styles.checkbox}>
