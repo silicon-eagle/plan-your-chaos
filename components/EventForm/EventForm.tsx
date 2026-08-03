@@ -5,8 +5,8 @@ import { useActionState, useRef, useState } from "react";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import type { EventIcon } from "@/lib/events/icons";
-import type { EventFormState } from "../form-state";
-import styles from "../events.module.css";
+import type { EventFormState } from "@/app/events/form-state";
+import styles from "@/app/events/events.module.css";
 
 type EventFormValues = {
   title: string;

@@ -1,11 +1,11 @@
 import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { EventForm } from "@/components/EventForm/EventForm";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { formatDateKey } from "@/lib/calendar/utils";
 import { chooseRandomIcon } from "@/lib/events/icons";
-import { EventForm } from "../../new/EventForm";
 import { updateEvent } from "./actions";
 import styles from "../../events.module.css";
 

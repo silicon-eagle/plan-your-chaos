@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { EventForm } from "./EventForm";
+import { EventForm } from "@/components/EventForm/EventForm";
 
 const icons = [
   { id: 1, name: "Cat", fileName: "cat" },
