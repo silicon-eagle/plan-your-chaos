@@ -97,24 +97,38 @@ export function Header({
         {renderActiveUser("active-user-link desktop-user")}
       </div>
 
-      <PixelButton
-        className="menu-button"
-        type="button"
-        selected={menuOpen}
-        aria-expanded={menuOpen}
-        aria-controls="mobile-navigation"
-        aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-        onClick={() => setMenuOpen((open) => !open)}
-      >
-        <span />
-        <span />
-        <span />
-      </PixelButton>
+      <div className="mobile-actions">
+        <PixelButton
+          className="mobile-user-button"
+          href="/user"
+          aria-label={`User: ${activeUserName}`}
+          selected={pathname === "/user"}
+        >
+          <UserAvatar
+            name={activeUserName}
+            src={activeUserAvatarPath}
+            decorative
+          />
+        </PixelButton>
+
+        <PixelButton
+          className="menu-button"
+          type="button"
+          selected={menuOpen}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
+          aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span />
+          <span />
+          <span />
+        </PixelButton>
+      </div>
 
       {menuOpen && (
         <div id="mobile-navigation">
           {renderNavigation("mobile-navigation")}
-          {renderActiveUser("active-user-link mobile-user")}
         </div>
       )}
     </header>

@@ -1,10 +1,10 @@
 import { asc } from "drizzle-orm";
+import { EventForm } from "@/components/EventForm/EventForm";
 import { db } from "@/db";
 import { icons, users } from "@/db/schema";
 import { getActiveUser } from "@/lib/auth/active-users";
 import { formatDateKey, parseDateKey } from "@/lib/calendar/utils";
 import { chooseRandomIcon } from "@/lib/events/icons";
-import { EventForm } from "./EventForm";
 import { createEvent } from "./actions";
 import styles from "../events.module.css";
 
