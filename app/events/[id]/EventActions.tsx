@@ -10,9 +10,18 @@ import styles from "../events.module.css";
 
 type EventActionsProps = {
   eventId: number;
+  previousEventId: number | null;
+  nextEventId: number | null;
 };
 
-function ActionImages({ name }: { name: "editBtn" | "deleteBtn" }) {
+type ActionImageName =
+  | "prevBtn"
+  | "editBtn"
+  | "deleteBtn"
+  | "nextBtn"
+  | "calendarBtn";
+
+function ActionImages({ name }: { name: ActionImageName }) {
   return (
     <>
       <Image
@@ -35,11 +44,25 @@ function ActionImages({ name }: { name: "editBtn" | "deleteBtn" }) {
   );
 }
 
-export function EventActions({ eventId }: EventActionsProps) {
+export function EventActions({
+  eventId,
+  previousEventId,
+  nextEventId,
+}: EventActionsProps) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   return (
     <div className={styles.eventActions}>
+      {previousEventId && (
+        <Link
+          className={buttonStyles.button}
+          href={`/events/${previousEventId}`}
+          aria-label="Previous event"
+        >
+          <ActionImages name="prevBtn" />
+        </Link>
+      )}
+
       <Link
         className={buttonStyles.button}
         href={`/events/${eventId}/edit`}
@@ -58,6 +81,24 @@ export function EventActions({ eventId }: EventActionsProps) {
           <ActionImages name="deleteBtn" />
         </button>
       )}
+
+      {nextEventId && (
+        <Link
+          className={buttonStyles.button}
+          href={`/events/${nextEventId}`}
+          aria-label="Next event"
+        >
+          <ActionImages name="nextBtn" />
+        </Link>
+      )}
+
+      <Link
+        className={buttonStyles.button}
+        href="/"
+        aria-label="Calendar"
+      >
+        <ActionImages name="calendarBtn" />
+      </Link>
 
       {isConfirmingDelete && (
         <div

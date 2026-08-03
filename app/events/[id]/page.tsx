@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
@@ -17,6 +17,38 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "full",
   timeStyle: "short",
 });
+
+async function getNextEvent(eventId: number, startsAt: Date) {
+  const [event] = await db
+    .select({ id: events.id })
+    .from(events)
+    .where(
+      or(
+        gt(events.startsAt, startsAt),
+        and(eq(events.startsAt, startsAt), gt(events.id, eventId)),
+      ),
+    )
+    .orderBy(asc(events.startsAt), asc(events.id))
+    .limit(1);
+
+  return event?.id ?? null;
+}
+
+async function getPrevEvent(eventId: number, startsAt: Date) {
+  const [event] = await db
+    .select({ id: events.id })
+    .from(events)
+    .where(
+      or(
+        lt(events.startsAt, startsAt),
+        and(eq(events.startsAt, startsAt), lt(events.id, eventId)),
+      ),
+    )
+    .orderBy(desc(events.startsAt), desc(events.id))
+    .limit(1);
+
+  return event?.id ?? null;
+}
 
 export default async function EventPage({ params }: EventPageProps) {
   const { id } = await params;
@@ -48,16 +80,20 @@ export default async function EventPage({ params }: EventPageProps) {
     notFound();
   }
 
-  const attendants = await db
-    .select({
-      id: users.id,
-      name: users.name,
-      avatarPath: users.avatarPath,
-    })
-    .from(eventAttendants)
-    .innerJoin(users, eq(eventAttendants.userId, users.id))
-    .where(eq(eventAttendants.eventId, event.id))
-    .orderBy(asc(users.name));
+  const [attendants, previousEventId, nextEventId] = await Promise.all([
+    db
+      .select({
+        id: users.id,
+        name: users.name,
+        avatarPath: users.avatarPath,
+      })
+      .from(eventAttendants)
+      .innerJoin(users, eq(eventAttendants.userId, users.id))
+      .where(eq(eventAttendants.eventId, event.id))
+      .orderBy(asc(users.name)),
+    getPrevEvent(event.id, event.startsAt),
+    getNextEvent(event.id, event.startsAt),
+  ]);
 
   return (
     <main className={styles.page}>
@@ -65,7 +101,11 @@ export default async function EventPage({ params }: EventPageProps) {
         className={`pixel-border ${styles.panel}`}
         aria-labelledby="event-heading"
       >
-        <EventActions eventId={event.id} />
+        <EventActions
+          eventId={event.id}
+          previousEventId={previousEventId}
+          nextEventId={nextEventId}
+        />
         <div className={styles.eventHeading}>
           {event.iconFileName && (
             <Image
