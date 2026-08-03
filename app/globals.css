@@ -125,6 +125,10 @@ a {
   gap: 0.5rem;
 }
 
+.mobile-actions {
+  display: none;
+}
+
 .desktop-navigation a,
 .mobile-navigation a {
   padding: 0.5rem 0.75rem;
@@ -178,10 +182,6 @@ a {
   color: var(--light-purple);
   font-size: 20px;
   text-decoration: none;
-}
-
-.mobile-user {
-  margin: 0 1rem 1rem;
 }
 
 .user-page {
@@ -268,6 +268,22 @@ a {
   .desktop-actions,
   .desktop-user {
     display: none;
+  }
+
+  .mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mobile-user-button {
+    display: flex;
+    width: 3rem;
+    height: 3rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 0;
   }
 
   .menu-button {

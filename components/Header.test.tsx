@@ -29,10 +29,9 @@ describe("Header", () => {
     expect(
       screen.getByRole("link", { name: "Events" }),
     ).toHaveAttribute("href", "/events");
-    expect(screen.getByRole("link", { name: "User: Adam" })).toHaveAttribute(
-      "href",
-      "/user",
-    );
+    expect(
+      screen.getAllByRole("link", { name: "User: Adam" }),
+    ).toHaveLength(2);
   });
 
   it("opens and closes the mobile navigation", () => {
@@ -53,6 +52,9 @@ describe("Header", () => {
     ).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.getAllByRole("navigation", { name: "Main navigation" }),
+    ).toHaveLength(2);
+    expect(
+      screen.getAllByRole("link", { name: "User: Adam" }),
     ).toHaveLength(2);
 
     fireEvent.keyDown(window, { key: "Escape" });
