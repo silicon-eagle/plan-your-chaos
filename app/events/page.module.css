@@ -1,14 +1,16 @@
 .page {
-  align-items: start;
+  align-items: stretch;
   padding-top: var(--page-top-spacing);
 }
 
 .panel {
   width: min(100%, 56rem);
+  min-height: 0;
 }
 
 @media (max-width: 42rem) {
   .page {
+    align-items: start;
     padding: var(--page-top-spacing) 1rem 1rem;
   }
 

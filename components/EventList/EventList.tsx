@@ -15,6 +15,7 @@ type EventListProps = {
   showFilters?: boolean;
   compact?: boolean;
   showHeader?: boolean;
+  fillHeight?: boolean;
 };
 
 export async function EventList({
@@ -25,6 +26,7 @@ export async function EventList({
   showFilters = true,
   compact = false,
   showHeader = false,
+  fillHeight = false,
 }: EventListProps) {
   if (
     Number.isNaN(from.getTime()) ||
@@ -69,6 +71,7 @@ export async function EventList({
       showFilters={showFilters}
       compact={compact}
       showHeader={showHeader}
+      fillHeight={fillHeight}
       currentTime={new Date().toISOString()}
     />
   );

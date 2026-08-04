@@ -37,6 +37,7 @@ type EventListClientProps = {
   showFilters?: boolean;
   compact?: boolean;
   showHeader?: boolean;
+  fillHeight?: boolean;
   currentTime?: string;
 };
 
@@ -96,6 +97,7 @@ export function EventListClient({
   showFilters = true,
   compact = false,
   showHeader = false,
+  fillHeight = false,
   currentTime = new Date().toISOString(),
 }: EventListClientProps) {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
@@ -131,7 +133,12 @@ export function EventListClient({
 
   return (
     <section
-      className={["pixel-border", styles.eventList, compact && styles.compact]
+      className={[
+        "pixel-border",
+        styles.eventList,
+        compact && styles.compact,
+        fillHeight && styles.fillHeight,
+      ]
         .filter(Boolean)
         .join(" ")}
       aria-label="Events"

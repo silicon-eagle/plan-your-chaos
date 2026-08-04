@@ -157,7 +157,15 @@
 }
 
 .compact {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 0;
+}
+
+.compact .scrollArea {
+  min-height: 0;
+  max-height: none;
 }
 
 .compact .item a {
@@ -176,6 +184,17 @@
 
 .compact .attendants {
   display: none;
+}
+
+.fillHeight {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.fillHeight .scrollArea {
+  min-height: 0;
+  max-height: none;
 }
 
 @media (max-width: 42rem) {
@@ -205,5 +224,23 @@
 
   .attendant > span {
     display: none;
+  }
+
+  .fillHeight {
+    height: auto;
+  }
+
+  .fillHeight .scrollArea {
+    max-height: 34rem;
+  }
+}
+
+@media (max-width: 64rem) {
+  .compact {
+    height: auto;
+  }
+
+  .compact .scrollArea {
+    max-height: 34rem;
   }
 }
