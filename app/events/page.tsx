@@ -14,6 +14,7 @@ export default function EventsPage() {
           showCreateButton
           showUpcomingFilter
           showHeader
+          fillHeight
         />
       </section>
     </main>

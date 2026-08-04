@@ -1,7 +1,8 @@
 .page {
   width: 100%;
   grid-template-columns: minmax(0, 64rem) minmax(22rem, 36rem);
-  align-items: start;
+  align-content: start;
+  align-items: stretch;
   justify-content: center;
   gap: 1rem;
   padding: var(--page-top-spacing) 2rem 2rem;
@@ -13,9 +14,23 @@
   min-width: 0;
 }
 
+.eventsPanel {
+  position: relative;
+}
+
+.eventsPanel > section {
+  position: absolute;
+  inset: 0;
+}
+
 @media (max-width: 64rem) {
   .page {
     grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .eventsPanel > section {
+    position: static;
   }
 }
 
