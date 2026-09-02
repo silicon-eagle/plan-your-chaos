@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Header } from "@/components/Header";
-import { getActiveUser } from "@/lib/auth/active-users";
-import packageJson from "@/package.json";
 import "./globals.css";
 
 const defaultFont = localFont({
@@ -20,25 +17,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const activeUser = await getActiveUser();
-
   return (
     <html lang="en" className={defaultFont.variable}>
-      <body>
-        <Header
-          activeUserName={activeUser.name}
-          activeUserAvatarPath={activeUser.avatarPath}
-        />
-        {children}
-        <footer className="site-footer">
-          Plan Your Chaos v{packageJson.version}
-        </footer>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

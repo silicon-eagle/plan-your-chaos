@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
+import { withApiAuthentication } from "@/lib/auth/authorization";
+import type { AuthenticatedSession } from "@/lib/auth/sessions";
 import {
   logger,
   withDatabaseLogging,
@@ -22,7 +24,13 @@ async function getEventId(context: RouteContext) {
   return parsePositiveInteger(id);
 }
 
-async function getAttendants(_request: Request, context: RouteContext) {
+async function getAttendants(
+  _request: Request,
+  context: RouteContext,
+  _session: AuthenticatedSession,
+) {
+  void _request;
+  void _session;
   const eventId = await getEventId(context);
 
   if (!eventId) {
@@ -54,7 +62,12 @@ async function getAttendants(_request: Request, context: RouteContext) {
   return NextResponse.json({ attendants });
 }
 
-async function addAttendant(request: Request, context: RouteContext) {
+async function addAttendant(
+  request: Request,
+  context: RouteContext,
+  _session: AuthenticatedSession,
+) {
+  void _session;
   const eventId = await getEventId(context);
 
   if (!eventId) {
@@ -135,9 +148,9 @@ async function addAttendant(request: Request, context: RouteContext) {
 
 export const GET = withRequestLogging(
   "GET /api/events/[id]/attendants",
-  getAttendants,
+  withApiAuthentication(getAttendants),
 );
 export const POST = withRequestLogging(
   "POST /api/events/[id]/attendants",
-  addAttendant,
+  withApiAuthentication(addAttendant),
 );

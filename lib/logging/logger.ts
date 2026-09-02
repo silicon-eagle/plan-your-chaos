@@ -83,7 +83,7 @@ export async function withDatabaseLogging<T>(
   }
 }
 
-type RouteHandler<Arguments extends unknown[]> = (
+export type RouteHandler<Arguments extends unknown[]> = (
   request: Request,
   ...args: Arguments
 ) => Promise<Response>;

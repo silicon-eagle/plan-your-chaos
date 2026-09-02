@@ -30,7 +30,7 @@ services:
   migrate:
     build:
       context: .
-      target: migrations
+      target: database-tools
     environment:
       POSTGRES_APP_USER: ${POSTGRES_APP_USER:?POSTGRES_APP_USER is required}
       POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?POSTGRES_APP_PASSWORD is required}
@@ -38,6 +38,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       TZ: Europe/Amsterdam
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?TOTP_ENCRYPTION_KEY is required}
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,6 +56,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       TZ: Europe/Amsterdam
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?TOTP_ENCRYPTION_KEY is required}
     ports:
       - "${APP_PORT:-3000}:3000"
     depends_on:

@@ -4,16 +4,29 @@ import {
   index,
   integer,
   pgTable,
+  pgEnum,
   primaryKey,
   serial,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
 
+export const loginChallengeStage = pgEnum("login_challenge_stage", [
+  "set_password",
+  "enroll_totp",
+]);
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   avatarPath: text("avatar_path"),
+  passwordHash: text("password_hash"),
+  mustSetPassword: boolean("must_set_password").default(false).notNull(),
+  totpSecretEncrypted: text("totp_secret_encrypted"),
+  totpEnabledAt: timestamp("totp_enabled_at", { withTimezone: true }),
+  lastTotpCounter: integer("last_totp_counter"),
+  failedLoginCount: integer("failed_login_count").default(0).notNull(),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -71,9 +84,62 @@ export const eventAttendants = pgTable(
   ],
 );
 
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastActiveAt: timestamp("last_active_at", { withTimezone: true })
+      .notNull(),
+    idleExpiresAt: timestamp("idle_expires_at", { withTimezone: true })
+      .notNull(),
+    absoluteExpiresAt: timestamp("absolute_expires_at", {
+      withTimezone: true,
+    }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    revocationReason: text("revocation_reason"),
+  },
+  (table) => [
+    index("sessions_user_id_idx").on(table.userId),
+    index("sessions_idle_expires_at_idx").on(table.idleExpiresAt),
+    index("sessions_absolute_expires_at_idx").on(table.absoluteExpiresAt),
+  ],
+);
+
+export const loginChallenges = pgTable(
+  "login_challenges",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    stage: loginChallengeStage("stage").notNull(),
+    pendingPasswordHash: text("pending_password_hash"),
+    pendingTotpSecretEncrypted: text("pending_totp_secret_encrypted"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("login_challenges_user_id_idx").on(table.userId),
+    index("login_challenges_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
 export const usersRelations = relations(users, ({ many }) => ({
   events: many(events),
   eventAttendances: many(eventAttendants),
+  sessions: many(sessions),
+  loginChallenges: many(loginChallenges),
 }));
 
 export const iconsRelations = relations(icons, ({ many }) => ({
@@ -105,3 +171,25 @@ export const eventAttendantsRelations = relations(
     }),
   }),
 );
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const loginChallengesRelations = relations(
+  loginChallenges,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [loginChallenges.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+export type LoginChallenge = typeof loginChallenges.$inferSelect;
+export type NewLoginChallenge = typeof loginChallenges.$inferInsert;

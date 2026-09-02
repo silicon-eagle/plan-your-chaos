@@ -1,0 +1,25 @@
+import { EventList } from "@/components/EventList/EventList";
+import { requirePageSession } from "@/lib/auth/authorization";
+import styles from "./page.module.css";
+
+export default async function EventsPage() {
+  await requirePageSession();
+
+  const beginningOfTime = new Date("0001-01-01T00:00:00.000Z");
+  const endOfTime = new Date("9999-12-31T23:59:59.999Z");
+
+  return (
+    <main className={styles.page}>
+      <section className={styles.panel} aria-label="Events">
+        <EventList
+          from={beginningOfTime}
+          to={endOfTime}
+          showCreateButton
+          showUpcomingFilter
+          showHeader
+          fillHeight
+        />
+      </section>
+    </main>
+  );
+}

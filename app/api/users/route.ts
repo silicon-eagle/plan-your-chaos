@@ -2,6 +2,8 @@ import { asc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { withApiAuthentication } from "@/lib/auth/authorization";
+import type { AuthenticatedSession } from "@/lib/auth/sessions";
 import { withRequestLogging } from "@/lib/logging/logger";
 
 async function getUsers() {
@@ -20,5 +22,12 @@ async function getUsers() {
 
 export const GET = withRequestLogging(
   "GET /api/users",
-  async () => getUsers(),
+  withApiAuthentication(async (
+    _request: Request,
+    _session: AuthenticatedSession,
+  ) => {
+    void _request;
+    void _session;
+    return getUsers();
+  }),
 );

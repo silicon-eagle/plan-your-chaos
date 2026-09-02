@@ -1,6 +1,7 @@
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { requireSession } from "@/lib/auth/authorization";
 import { getEventsInRange } from "@/lib/events/queries";
 import {
   EventListClient,
@@ -35,6 +36,8 @@ export async function EventList({
   ) {
     throw new RangeError("EventList requires a valid date range");
   }
+
+  await requireSession();
 
   const [events, householdUsers] = await Promise.all([
     getEventsInRange(from, to),
