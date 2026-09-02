@@ -118,9 +118,7 @@ export function Header({
           {renderNavigation("mobile-navigation")}
           <div className="mobile-logout">
             <form action={logoutAction}>
-              <PixelButton type="submit" onClick={() => setMenuOpen(false)}>
-                Logout
-              </PixelButton>
+              <PixelButton type="submit">Logout</PixelButton>
             </form>
           </div>
         </div>

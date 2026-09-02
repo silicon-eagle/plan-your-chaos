@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { logoutAction } from "@/app/login/actions";
 import { Header } from "./Header";
 
 vi.mock("next/navigation", () => ({
@@ -76,5 +77,30 @@ describe("Header", () => {
     expect(
       screen.getByRole("button", { name: "Open navigation" }),
     ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps the mobile logout form mounted while logout is dispatched", async () => {
+    render(
+      <Header
+        activeUserName="Adam"
+        activeUserAvatarPath="/images/userT.png"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open navigation" }),
+    );
+
+    const mobileNavigation = document.querySelector("#mobile-navigation");
+    expect(mobileNavigation).not.toBeNull();
+
+    fireEvent.click(
+      within(mobileNavigation as HTMLElement).getByRole("button", {
+        name: "Logout",
+      }),
+    );
+
+    expect(document.querySelector("#mobile-navigation")).toBeInTheDocument();
+    await waitFor(() => expect(logoutAction).toHaveBeenCalled());
   });
 });
