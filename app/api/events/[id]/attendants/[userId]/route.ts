@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { db } from "@/db";
 import { eventAttendants } from "@/db/schema";
+import { withApiAuthentication } from "@/lib/auth/authorization";
+import type { AuthenticatedSession } from "@/lib/auth/sessions";
 import {
   logger,
   withDatabaseLogging,
@@ -13,7 +15,13 @@ type RouteContext = {
   params: Promise<{ id: string; userId: string }>;
 };
 
-async function removeAttendant(_request: Request, context: RouteContext) {
+async function removeAttendant(
+  _request: Request,
+  context: RouteContext,
+  _session: AuthenticatedSession,
+) {
+  void _request;
+  void _session;
   const params = await context.params;
   const eventId = parsePositiveInteger(params.id);
   const userId = parsePositiveInteger(params.userId);
@@ -57,5 +65,5 @@ async function removeAttendant(_request: Request, context: RouteContext) {
 
 export const DELETE = withRequestLogging(
   "DELETE /api/events/[id]/attendants/[userId]",
-  removeAttendant,
+  withApiAuthentication(removeAttendant),
 );

@@ -9,7 +9,102 @@
 
 A household calendar built with Next.js, TypeScript, and PostgreSQL.
 
-## Docker deployment
+## Authentication
+
+Plan Your Chaos uses password-plus-TOTP authentication managed entirely by an
+administrator. There is no self-service account recovery, password-reset email,
+or in-app registration.
+
+For a complete explanation of the login state machine, TOTP enrollment,
+sessions, route protection, Server Action authorization, and API
+authentication, see [`docs/authentication.md`](docs/authentication.md).
+
+### Generate an encryption key
+
+TOTP secrets are stored encrypted. Generate a key before first deployment:
+
+```bash
+openssl rand -base64 32
+```
+
+Set the result as `TOTP_ENCRYPTION_KEY` in `.env`. Store it securely. If the
+key is lost or replaced, all enrolled TOTP secrets become unreadable and every
+user must re-enroll.
+
+### First rollout
+
+After deploying a fresh database, no user can log in — there are no temporary
+passwords yet. Issue one for each household member before announcing the
+deployment:
+
+```bash
+# Local development
+pnpm auth:admin issue-password --user Tim
+
+# Production (via Compose)
+docker compose run --rm migrate \
+  pnpm auth:admin issue-password --user Tim
+```
+
+The temporary password is printed once and never shown again. Share it with the
+user over a trusted channel and destroy your copy immediately.
+
+On first login the user must replace the temporary password and enroll TOTP.
+Existing users cannot log in until an administrator issues a temporary password
+for them.
+
+### Admin commands
+
+| Command | Effect |
+| ------- | ------ |
+| `pnpm auth:admin issue-password --user <name>` | Sets a new temporary password, marks it must-change, revokes all active sessions, and prints the password once. |
+| `pnpm auth:admin reset-totp --user <name>` | Clears the stored TOTP secret, revokes all active sessions. The user's password is unchanged. |
+| `pnpm auth:admin cleanup` | Deletes expired and revoked sessions and consumed login challenges. |
+
+Run production commands through the `migrate` service so they share the same
+database credentials and network:
+
+```bash
+docker compose run --rm migrate \
+  pnpm auth:admin issue-password --user Tim
+
+docker compose run --rm migrate \
+  pnpm auth:admin reset-totp --user Tim
+```
+
+> **Important:** Do not run admin commands against a non-disposable database
+> from shell history that could expose credentials. Prefer the Compose approach
+> above, which inherits credentials from the environment file without
+> interactive input.
+
+### Reset effects
+
+- **issue-password**: revokes all active sessions; user must log in with the
+  new temporary password, set a new permanent password, and re-enroll TOTP if
+  not already enrolled.
+- **reset-totp**: revokes all active sessions; the user must log in with their
+  existing password, then re-enroll TOTP. The password is not changed.
+- There is no in-app recovery path. A user who loses their TOTP device must
+  contact an administrator who runs `reset-totp`.
+
+### Session expiry
+
+Sessions expire automatically:
+
+- **Idle timeout**: 24 hours since last activity. Each page visit extends the
+  idle clock.
+- **Absolute maximum**: 7 days from login, regardless of activity.
+
+A session that reaches either limit is deleted. The user is redirected to the
+login page on their next request.
+
+### Account lockout
+
+After **five** consecutive failed login attempts (wrong password or wrong TOTP
+code), the account is locked for **15 minutes**. The lockout clears
+automatically; no administrator action is required.
+
+
 
 Install Docker with the Compose plugin on the host, then clone the repository
 and create the environment file:
@@ -19,8 +114,9 @@ cp .env.example .env
 ```
 
 Before deployment, replace both example passwords in `.env` with strong,
-independent values. You can also add `APP_PORT` to change the host port from its
-default of `3000`.
+independent values. Generate a `TOTP_ENCRYPTION_KEY` with
+`openssl rand -base64 32` and set it in `.env`. You can also add `APP_PORT` to
+change the host port from its default of `3000`.
 
 Build and start the complete stack:
 
@@ -109,7 +205,7 @@ forgejo.arda:3000/tkelch/plan-your-chaos:latest
 forgejo.arda:3000/tkelch/plan-your-chaos:<commit-sha>
 ```
 
-The migration image is built from the `migrations` target:
+The migration image is built from the `database-tools` target:
 
 ```text
 forgejo.arda:3000/tkelch/plan-your-chaos:migrations-latest
@@ -148,6 +244,7 @@ Repository Settings
 | `DEPLOY_USER`       | SSH deployment user, normally `deploy`             |
 | `DEPLOY_SSH_KEY`    | Private SSH key used by the workflow               |
 | `DEPLOY_PATH`       | Production Compose directory on `erebor`           |
+| `TOTP_ENCRYPTION_KEY` | 32-byte AES key encoded as base64 (see [Authentication](#authentication)) |
 
 The current deployment path is:
 
@@ -298,6 +395,9 @@ override the component variables.
 - `pnpm db:migrate` - apply database migrations
 - `pnpm db:seed` - seed development data
 - `pnpm db:studio` - open Drizzle Studio
+- `pnpm auth:admin issue-password --user <name>` - issue a temporary password (printed once)
+- `pnpm auth:admin reset-totp --user <name>` - reset TOTP and revoke sessions
+- `pnpm auth:admin cleanup` - delete expired sessions and consumed challenges
 - `docker compose up --build` - build and start the app and PostgreSQL
 - `docker compose up -d postgres` - start only PostgreSQL
 - `docker compose stop postgres` - stop PostgreSQL without deleting its data

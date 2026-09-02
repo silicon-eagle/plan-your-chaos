@@ -34,6 +34,13 @@
   }
 }
 
+.loggedOutPage {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (max-width: 42rem) {
   .page {
     padding: var(--page-top-spacing) 0.5rem 0.5rem;

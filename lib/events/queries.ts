@@ -3,9 +3,12 @@ import "server-only";
 import { and, asc, eq, gt, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
+import { requireSession } from "@/lib/auth/authorization";
 import { withDatabaseLogging } from "@/lib/logging/logger";
 
 export async function getEventsInRange(from: Date, to: Date) {
+  await requireSession();
+
   return withDatabaseLogging(
     "events.list",
     { from: from.toISOString(), to: to.toISOString() },

@@ -6,8 +6,12 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
+vi.mock("@/app/login/actions", () => ({
+  logoutAction: vi.fn(),
+}));
+
 describe("Header", () => {
-  it("renders the page links and marks the current page", () => {
+  it("renders the page links, logout button, and marks the current page", () => {
     render(
       <Header
         activeUserName="Adam"
@@ -30,8 +34,21 @@ describe("Header", () => {
       screen.getByRole("link", { name: "Events" }),
     ).toHaveAttribute("href", "/events");
     expect(
-      screen.getAllByRole("link", { name: "User: Adam" }),
-    ).toHaveLength(2);
+      screen.getByRole("button", { name: "Logout" }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not render a user-switch link", () => {
+    render(
+      <Header
+        activeUserName="Adam"
+        activeUserAvatarPath="/images/userT.png"
+      />,
+    );
+
+    expect(
+      screen.queryByRole("link", { name: /User:/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("opens and closes the mobile navigation", () => {
@@ -52,9 +69,6 @@ describe("Header", () => {
     ).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.getAllByRole("navigation", { name: "Main navigation" }),
-    ).toHaveLength(2);
-    expect(
-      screen.getAllByRole("link", { name: "User: Adam" }),
     ).toHaveLength(2);
 
     fireEvent.keyDown(window, { key: "Escape" });

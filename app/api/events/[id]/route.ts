@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { events, users } from "@/db/schema";
+import { events } from "@/db/schema";
+import { withApiAuthentication } from "@/lib/auth/authorization";
+import type { AuthenticatedSession } from "@/lib/auth/sessions";
 import {
   logger,
   withDatabaseLogging,
@@ -17,7 +19,12 @@ function errorResponse(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-async function updateEvent(request: Request, context: RouteContext) {
+async function updateEvent(
+  request: Request,
+  context: RouteContext,
+  _session: AuthenticatedSession,
+) {
+  void _session;
   const { id } = await context.params;
   const eventId = parsePositiveInteger(id);
 
@@ -41,6 +48,12 @@ async function updateEvent(request: Request, context: RouteContext) {
     return errorResponse("Request body must be an object");
   }
 
+  const input = body as Record<string, unknown>;
+
+  if ("userId" in input) {
+    return errorResponse("userId cannot be changed");
+  }
+
   const [existingEvent] = await db
     .select()
     .from(events)
@@ -51,7 +64,6 @@ async function updateEvent(request: Request, context: RouteContext) {
     return errorResponse("Event not found", 404);
   }
 
-  const input = body as Record<string, unknown>;
   const changes: Partial<typeof events.$inferInsert> = {};
 
   if ("title" in input) {
@@ -91,24 +103,6 @@ async function updateEvent(request: Request, context: RouteContext) {
     changes.notes = input.notes;
   }
 
-  if ("userId" in input) {
-    const userId = parsePositiveInteger(input.userId);
-    if (!userId) {
-      return errorResponse("userId must be a positive integer");
-    }
-
-    const [owner] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (!owner) {
-      return errorResponse("User not found", 404);
-    }
-    changes.userId = userId;
-  }
-
   if (Object.keys(changes).length === 0) {
     return errorResponse("At least one event field must be provided");
   }
@@ -139,7 +133,12 @@ async function updateEvent(request: Request, context: RouteContext) {
   return NextResponse.json({ event: updatedEvent });
 }
 
-async function deleteEvent(_request: Request, context: RouteContext) {
+async function deleteEvent(
+  _request: Request,
+  context: RouteContext,
+  _session: AuthenticatedSession,
+) {
+  void _session;
   const { id } = await context.params;
   const eventId = parsePositiveInteger(id);
 
@@ -170,9 +169,9 @@ async function deleteEvent(_request: Request, context: RouteContext) {
 
 export const PATCH = withRequestLogging(
   "PATCH /api/events/[id]",
-  updateEvent,
+  withApiAuthentication(updateEvent),
 );
 export const DELETE = withRequestLogging(
   "DELETE /api/events/[id]",
-  deleteEvent,
+  withApiAuthentication(deleteEvent),
 );

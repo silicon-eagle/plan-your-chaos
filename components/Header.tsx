@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { logoutAction } from "@/app/login/actions";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 
@@ -57,25 +58,6 @@ export function Header({
     );
   }
 
-  function renderActiveUser(className: string) {
-    return (
-      <PixelButton
-        className={className}
-        href="/user"
-        aria-label={`User: ${activeUserName}`}
-        selected={pathname === "/user"}
-        onClick={() => setMenuOpen(false)}
-      >
-        User:
-        <UserAvatar
-          name={activeUserName}
-          src={activeUserAvatarPath}
-          decorative
-        />
-      </PixelButton>
-    );
-  }
-
   return (
     <header className="site-header">
       <Link className="site-title" href="/">
@@ -94,22 +76,27 @@ export function Header({
 
       <div className="desktop-actions">
         {renderNavigation("desktop-navigation")}
-        {renderActiveUser("active-user-link desktop-user")}
-      </div>
-
-      <div className="mobile-actions">
-        <PixelButton
-          className="mobile-user-button"
-          href="/user"
-          aria-label={`User: ${activeUserName}`}
-          selected={pathname === "/user"}
-        >
+        <span className="active-user-display desktop-user">
           <UserAvatar
             name={activeUserName}
             src={activeUserAvatarPath}
             decorative
           />
-        </PixelButton>
+          {activeUserName}
+        </span>
+        <form action={logoutAction}>
+          <PixelButton type="submit">Logout</PixelButton>
+        </form>
+      </div>
+
+      <div className="mobile-actions">
+        <span className="mobile-user-display">
+          <UserAvatar
+            name={activeUserName}
+            src={activeUserAvatarPath}
+            decorative
+          />
+        </span>
 
         <PixelButton
           className="menu-button"
@@ -129,6 +116,13 @@ export function Header({
       {menuOpen && (
         <div id="mobile-navigation">
           {renderNavigation("mobile-navigation")}
+          <div className="mobile-logout">
+            <form action={logoutAction}>
+              <PixelButton type="submit" onClick={() => setMenuOpen(false)}>
+                Logout
+              </PixelButton>
+            </form>
+          </div>
         </div>
       )}
     </header>

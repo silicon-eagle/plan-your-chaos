@@ -1,7 +1,8 @@
-import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { events, users } from "@/db/schema";
+import { events } from "@/db/schema";
+import { withApiAuthentication } from "@/lib/auth/authorization";
+import type { AuthenticatedSession } from "@/lib/auth/sessions";
 import { resolveEventIconId } from "@/lib/events/icons";
 import { getEventsInRange } from "@/lib/events/queries";
 import {
@@ -9,13 +10,17 @@ import {
   withDatabaseLogging,
   withRequestLogging,
 } from "@/lib/logging/logger";
-import { parseDate, parsePositiveInteger } from "./validation";
+import { parseDate } from "./validation";
 
 function errorResponse(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-async function getEvents(request: Request) {
+async function getEvents(
+  request: Request,
+  _session: AuthenticatedSession,
+) {
+  void _session;
   const searchParams = new URL(request.url).searchParams;
   const from = parseDate(searchParams.get("from"));
   const to = parseDate(searchParams.get("to"));
@@ -31,7 +36,10 @@ async function getEvents(request: Request) {
   return NextResponse.json({ events: await getEventsInRange(from, to) });
 }
 
-async function createEvent(request: Request) {
+async function createEvent(
+  request: Request,
+  session: AuthenticatedSession,
+) {
   let body: unknown;
 
   try {
@@ -52,13 +60,13 @@ async function createEvent(request: Request) {
   const title = typeof input.title === "string" ? input.title.trim() : "";
   const startsAt = parseDate(input.startsAt);
   const endsAt = parseDate(input.endsAt);
-  const userId = parsePositiveInteger(input.userId);
+  const userId = session.user.id;
   const allDay = input.allDay ?? false;
   const notes = input.notes ?? null;
 
-  if (!title || !startsAt || !endsAt || !userId) {
+  if (!title || !startsAt || !endsAt) {
     return errorResponse(
-      "title, startsAt, endsAt, and userId are required and must be valid",
+      "title, startsAt, and endsAt are required and must be valid",
     );
   }
 
@@ -72,16 +80,6 @@ async function createEvent(request: Request) {
 
   if (notes !== null && typeof notes !== "string") {
     return errorResponse("notes must be a string or null");
-  }
-
-  const [owner] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  if (!owner) {
-    return errorResponse("User not found", 404);
   }
 
   const iconId = await resolveEventIconId(input.iconId);
@@ -115,5 +113,5 @@ async function createEvent(request: Request) {
   return NextResponse.json({ event: createdEvent }, { status: 201 });
 }
 
-export const GET = withRequestLogging("GET /api/events", getEvents);
-export const POST = withRequestLogging("POST /api/events", createEvent);
+export const GET = withRequestLogging("GET /api/events", withApiAuthentication(getEvents));
+export const POST = withRequestLogging("POST /api/events", withApiAuthentication(createEvent));

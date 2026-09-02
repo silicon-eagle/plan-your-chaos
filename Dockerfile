@@ -32,8 +32,12 @@ WORKDIR /app
 
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml drizzle.config.ts ./
+COPY tsconfig.json ./
 COPY db ./db
 COPY drizzle ./drizzle
+COPY lib/auth ./lib/auth
+COPY lib/logging ./lib/logging
+COPY scripts ./scripts
 
 CMD ["pnpm", "db:seed"]
 
