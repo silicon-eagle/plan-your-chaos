@@ -143,6 +143,14 @@
   font: inherit;
 }
 
+.input[type="datetime-local"] {
+  display: flex;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  overflow: hidden;
+}
+
 .input:focus-visible {
   border-color: var(--yellow);
   outline: 3px solid var(--primary);

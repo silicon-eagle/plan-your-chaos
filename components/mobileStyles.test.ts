@@ -26,6 +26,9 @@ describe("mobile layout styles", () => {
       /\.dateTimeField\s*\{[^}]*min-width:\s*0;/,
     );
     expect(eventFormStyles).toMatch(/\.input\s*\{[^}]*min-width:\s*0;/);
+    expect(eventFormStyles).toMatch(
+      /\.input\[type="datetime-local"\]\s*\{[^}]*display:\s*flex;[^}]*max-width:\s*100%;[^}]*appearance:\s*none;[^}]*overflow:\s*hidden;/,
+    );
   });
 
   it("keeps the create-event sprite button at its intended size", () => {
