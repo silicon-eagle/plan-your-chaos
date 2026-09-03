@@ -71,6 +71,9 @@ describe("EventActions", () => {
     expect(
       screen.getByRole("alertdialog", { name: "Confirm deletion" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Delete event" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 

@@ -71,16 +71,14 @@ export function EventActions({
         <ActionImages name="editBtn" />
       </Link>
 
-      {!isConfirmingDelete && (
-        <button
-          className={buttonStyles.button}
-          type="button"
-          aria-label="Delete event"
-          onClick={() => setIsConfirmingDelete(true)}
-        >
-          <ActionImages name="deleteBtn" />
-        </button>
-      )}
+      <button
+        className={buttonStyles.button}
+        type="button"
+        aria-label="Delete event"
+        onClick={() => setIsConfirmingDelete(true)}
+      >
+        <ActionImages name="deleteBtn" />
+      </button>
 
       {nextEventId && (
         <Link
