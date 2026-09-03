@@ -2,6 +2,9 @@
   position: relative;
   width: calc(16px * var(--pixel-art-scale));
   height: calc(16px * var(--pixel-art-scale));
+  min-width: calc(16px * var(--pixel-art-scale));
+  min-height: calc(16px * var(--pixel-art-scale));
+  flex: 0 0 auto;
   padding: 0;
   border: 0;
   background: transparent;

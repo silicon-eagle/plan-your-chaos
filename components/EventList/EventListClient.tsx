@@ -57,6 +57,10 @@ const timeFormatter = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
 });
 
+function formatEventDate(date: Date) {
+  return dateFormatter.format(date).replace(/\bSept\b/, "Sep");
+}
+
 function getTimeLabel(event: EventListItem) {
   if (event.allDay) {
     return "All day";
@@ -101,7 +105,7 @@ export function EventListClient({
   currentTime = new Date().toISOString(),
 }: EventListClientProps) {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
-  const [upcomingOnly, setUpcomingOnly] = useState(false);
+  const [upcomingOnly, setUpcomingOnly] = useState(showUpcomingFilter);
   const [now, setNow] = useState(() => new Date(currentTime));
 
   useEffect(() => {
@@ -172,21 +176,16 @@ export function EventListClient({
                   </label>
                 ))}
                 {showUpcomingFilter && (
-                  <>
-                    <span className={styles.filterSeparator} aria-hidden="true">
-                      |
-                    </span>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={upcomingOnly}
-                        onChange={(event) =>
-                          setUpcomingOnly(event.target.checked)
-                        }
-                      />
-                      <span>Upcoming only</span>
-                    </label>
-                  </>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={upcomingOnly}
+                      onChange={(event) =>
+                        setUpcomingOnly(event.target.checked)
+                      }
+                    />
+                    <span>Upcoming only</span>
+                  </label>
                 )}
               </div>
             </fieldset>
@@ -226,7 +225,7 @@ export function EventListClient({
 
                     <span className={styles.eventDetails}>
                       <time dateTime={event.startsAt}>
-                        {dateFormatter.format(startsAt).toUpperCase()} | {status}
+                        {formatEventDate(startsAt).toUpperCase()} | {status}
                       </time>
                       <strong>{event.title}</strong>
                       <span>{getTimeLabel(event)}</span>

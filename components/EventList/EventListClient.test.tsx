@@ -95,7 +95,7 @@ describe("EventListClient", () => {
     expect(screen.getByText("Concert")).toBeInTheDocument();
   });
 
-  it("can show only upcoming events when enabled", () => {
+  it("shows only upcoming events by default when the filter is enabled", () => {
     render(
       <EventListClient
         events={events}
@@ -105,12 +105,42 @@ describe("EventListClient", () => {
       />,
     );
 
-    fireEvent.click(
+    expect(
       screen.getByRole("checkbox", { name: "Upcoming only" }),
-    );
+    ).toBeChecked();
 
     expect(screen.queryByText("Dinner")).not.toBeInTheDocument();
     expect(screen.getByText("Concert")).toBeInTheDocument();
+  });
+
+  it("does not show a separator between event filters", () => {
+    render(
+      <EventListClient
+        events={events}
+        users={[{ id: 1, name: "Tim" }]}
+        showUpcomingFilter
+      />,
+    );
+
+    expect(screen.queryByText("|")).not.toBeInTheDocument();
+  });
+
+  it("uses a deterministic three-letter September label", () => {
+    render(
+      <EventListClient
+        events={[
+          {
+            ...events[0],
+            startsAt: "2026-09-18T18:00:00.000Z",
+            endsAt: "2026-09-18T19:00:00.000Z",
+          },
+        ]}
+        users={[]}
+        currentTime="2026-09-01T12:00:00.000Z"
+      />,
+    );
+
+    expect(screen.getByText("FRI 18 SEP | In 17 days")).toBeInTheDocument();
   });
 
   it("optionally shows the Events image heading", () => {
