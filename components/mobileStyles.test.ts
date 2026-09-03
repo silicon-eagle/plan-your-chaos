@@ -23,29 +23,29 @@ const pixelButtonStyles = readFileSync(
 describe("mobile layout styles", () => {
   it("allows date-time controls to shrink inside the event form", () => {
     expect(eventFormStyles).toMatch(
-      /\.dateTimeField\s*\{[^}]*min-width:\s*0;/s,
+      /\.dateTimeField\s*\{[^}]*min-width:\s*0;/,
     );
-    expect(eventFormStyles).toMatch(/\.input\s*\{[^}]*min-width:\s*0;/s);
+    expect(eventFormStyles).toMatch(/\.input\s*\{[^}]*min-width:\s*0;/);
   });
 
   it("keeps the create-event sprite button at its intended size", () => {
     expect(calendarButtonStyles).toMatch(
-      /\.button\s*\{[^}]*flex:\s*0 0 auto;/s,
+      /\.button\s*\{[^}]*flex:\s*0 0 auto;/,
     );
     expect(calendarButtonStyles).toMatch(
-      /\.button\s*\{[^}]*min-width:\s*calc\(16px \* var\(--pixel-art-scale\)\);/s,
+      /\.button\s*\{[^}]*min-width:\s*calc\(16px \* var\(--pixel-art-scale\)\);/,
     );
     expect(eventListStyles).toMatch(
-      /@media\s*\(max-width:\s*42rem\)[\s\S]*\.filterRow\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto;/s,
+      /@media\s*\(max-width:\s*42rem\)[\s\S]*\.filterRow\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto;/,
     );
   });
 
   it("renders the menu sprites at their native size", () => {
     expect(globalStyles).toMatch(
-      /\.menu-icon\s*\{[^}]*width:\s*64px;[^}]*height:\s*64px;/s,
+      /\.menu-icon\s*\{[^}]*width:\s*64px;[^}]*height:\s*64px;/,
     );
     expect(globalStyles).toMatch(
-      /\.menu-icon-hover\s*\{[^}]*display:\s*none;/s,
+      /\.menu-icon-hover\s*\{[^}]*display:\s*none;/,
     );
   });
 
@@ -63,7 +63,7 @@ describe("mobile layout styles", () => {
 
   it("only applies hover button fills on devices with hover input", () => {
     expect(pixelButtonStyles).toMatch(
-      /@media\s*\(hover:\s*hover\)\s*\{[^}]*\.button:hover:not\(:disabled\)/s,
+      /@media\s*\(hover:\s*hover\)\s*\{[^}]*\.button:hover:not\(:disabled\)/,
     );
   });
 });
