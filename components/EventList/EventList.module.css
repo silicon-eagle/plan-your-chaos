@@ -47,10 +47,6 @@
   cursor: pointer;
 }
 
-.filterSeparator {
-  color: var(--light-purple);
-}
-
 .scrollArea {
   max-height: 34rem;
   overflow-y: auto;
@@ -203,7 +199,13 @@
   }
 
   .filterRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
+  }
+
+  .filters {
+    min-width: 0;
   }
 
   .item a {

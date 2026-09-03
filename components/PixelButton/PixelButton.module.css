@@ -13,12 +13,19 @@
   image-rendering: pixelated;
 }
 
-.button:hover:not(:disabled),
 .button:focus-visible,
 .selected {
   border-image: url("/images/border-selected.png") 2 fill /
     calc(2px * var(--pixel-art-scale)) stretch;
   image-rendering: pixelated;
+}
+
+@media (hover: hover) {
+  .button:hover:not(:disabled) {
+    border-image: url("/images/border-selected.png") 2 fill /
+      calc(2px * var(--pixel-art-scale)) stretch;
+    image-rendering: pixelated;
+  }
 }
 
 .button:focus-visible {
