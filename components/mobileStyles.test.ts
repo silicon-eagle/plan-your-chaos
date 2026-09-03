@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
@@ -39,9 +40,24 @@ describe("mobile layout styles", () => {
     );
   });
 
-  it("gives hamburger bars visible width", () => {
+  it("renders the menu sprites at their native size", () => {
     expect(globalStyles).toMatch(
-      /\.menu-button span\s*\{[^}]*width:\s*100%;/s,
+      /\.menu-icon\s*\{[^}]*width:\s*64px;[^}]*height:\s*64px;/s,
+    );
+    expect(globalStyles).toMatch(
+      /\.menu-icon-hover\s*\{[^}]*display:\s*none;/s,
+    );
+  });
+
+  it("maps the bars to closed and the X to open", () => {
+    const hash = (path: string) =>
+      createHash("sha256").update(readFileSync(path)).digest("hex");
+
+    expect(hash("public/images/menu-closed.png")).toBe(
+      "a81f16072cc1fe30da2412c6fe7b8afe77e81334b793b51337f19a3cd43fc514",
+    );
+    expect(hash("public/images/menu-open.png")).toBe(
+      "09be45364f983d597833e94554926165fe121c04ef6667af3370dfae653c1514",
     );
   });
 

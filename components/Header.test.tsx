@@ -79,6 +79,40 @@ describe("Header", () => {
     ).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("switches the default and hover sprites with the menu state", () => {
+    render(
+      <Header
+        activeUserName="Adam"
+        activeUserAvatarPath="/images/userT.png"
+      />,
+    );
+
+    const menuButton = screen.getByRole("button", {
+      name: "Open navigation",
+    });
+    expect(
+      Array.from(menuButton.querySelectorAll("img")).map((image) =>
+        image.getAttribute("src"),
+      ),
+    ).toEqual([
+      expect.stringContaining("/images/menu-closed.png"),
+      expect.stringContaining("/images/menu-closed-hover.png"),
+    ]);
+
+    fireEvent.click(menuButton);
+
+    expect(
+      Array.from(
+        screen
+          .getByRole("button", { name: "Close navigation" })
+          .querySelectorAll("img"),
+      ).map((image) => image.getAttribute("src")),
+    ).toEqual([
+      expect.stringContaining("/images/menu-open.png"),
+      expect.stringContaining("/images/menu-open-hover.png"),
+    ]);
+  });
+
   it("keeps the mobile logout form mounted while logout is dispatched", async () => {
     render(
       <Header

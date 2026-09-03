@@ -98,19 +98,39 @@ export function Header({
           />
         </span>
 
-        <PixelButton
+        <button
           className="menu-button"
           type="button"
-          selected={menuOpen}
           aria-expanded={menuOpen}
           aria-controls="mobile-navigation"
           aria-label={menuOpen ? "Close navigation" : "Open navigation"}
           onClick={() => setMenuOpen((open) => !open)}
         >
-          <span />
-          <span />
-          <span />
-        </PixelButton>
+          <Image
+            className="menu-icon menu-icon-default"
+            src={
+              menuOpen
+                ? "/images/menu-open.png"
+                : "/images/menu-closed.png"
+            }
+            alt=""
+            width={64}
+            height={64}
+            unoptimized
+          />
+          <Image
+            className="menu-icon menu-icon-hover"
+            src={
+              menuOpen
+                ? "/images/menu-open-hover.png"
+                : "/images/menu-closed-hover.png"
+            }
+            alt=""
+            width={64}
+            height={64}
+            unoptimized
+          />
+        </button>
       </div>
 
       {menuOpen && (
