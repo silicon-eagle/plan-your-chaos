@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -30,6 +30,15 @@ const authenticatedSession = {
   idleExpiresAt: new Date(),
   absoluteExpiresAt: new Date(),
 };
+
+beforeAll(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-13T12:00:00Z"));
+});
+
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -64,5 +73,8 @@ describe("LoginPage", () => {
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.dbSelect).not.toHaveBeenCalled();
     expect(screen.getByRole("form", { name: "Login" })).toBeInTheDocument();
+    expect(screen.getByText(
+      "© 2026 Tim Kelch. All rights reserved. | Version 1.3.7",
+    )).toBeInTheDocument();
   });
 });
