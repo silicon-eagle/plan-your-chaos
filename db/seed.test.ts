@@ -94,14 +94,14 @@ describe("initial account seeding", () => {
     expect(query.params).toEqual(["Admin"]);
   });
 
-  it("seeds all 21 icon choices without touching user roles", async () => {
+  it("seeds all 22 icon choices including Christmas without touching user roles", async () => {
     rows = [[{ key: "initial-admin" }]];
     await seed();
     const iconNames = inserted.filter((entry) => entry.table === icons)
       .map((entry) => entry.values.fileName);
-    expect(iconNames).toHaveLength(21);
+    expect(iconNames).toHaveLength(22);
     expect(iconNames).toEqual(expect.arrayContaining([
-      "chess", "cocktail", "controller", "helmet", "plane", "sword",
+      "chess", "christmas", "cocktail", "controller", "helmet", "plane", "sword",
     ]));
   });
 
@@ -118,7 +118,7 @@ describe("initial account seeding", () => {
 
     expect(inserted).toEqual([]);
     expect(mocks.hashPassword).toHaveBeenCalledTimes(1);
-    expect(mocks.update).toHaveBeenCalledTimes(21);
+    expect(mocks.update).toHaveBeenCalledTimes(22);
     expect(mocks.update.mock.calls.every(([table]) => table === icons)).toBe(true);
   });
 

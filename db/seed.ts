@@ -12,6 +12,7 @@ const seedIcons = [
   { name: "Car", fileName: "car" },
   { name: "Cat", fileName: "cat" },
   { name: "Chess", fileName: "chess" },
+  { name: "Christmas", fileName: "christmas" },
   { name: "Cocktail", fileName: "cocktail" },
   { name: "Coffee", fileName: "coffee" },
   { name: "Controller", fileName: "controller" },
