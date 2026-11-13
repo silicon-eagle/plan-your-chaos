@@ -1,21 +1,35 @@
 import { requirePageRole } from "@/lib/auth/authorization";
 import { listManagedUsers } from "@/lib/auth/admin-service";
-import { AdminUsers } from "./AdminUsers";
+import { PixelButton } from "@/components/PixelButton/PixelButton";
+import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import styles from "./admin.module.css";
 
 export default async function AdminPage() {
-  const session = await requirePageRole(["Admin"]);
+  await requirePageRole(["Admin"]);
   const users = await listManagedUsers();
 
   return (
-    <main>
-      <section className={styles.page} aria-labelledby="admin-heading">
-        <h1 id="admin-heading">Manage accounts</h1>
-        <p>
-          Users can organise events. Readers can view visible events only.
-          Account recovery remains administrator-managed.
-        </p>
-        <AdminUsers users={users} currentUserId={session.user.id} />
+    <main className={styles.page}>
+      <section className={`pixel-border ${styles.panel}`} aria-labelledby="admin-heading">
+        <div className={styles.heading}>
+          <h1 id="admin-heading">Users</h1>
+          <PixelButton href="/admin/new" className={styles.linkButton}>
+            Create user
+          </PixelButton>
+        </div>
+        <ul className={styles.userList}>
+          {users.map((user) => (
+            <li key={user.id}>
+              <PixelButton href={`/admin/${user.id}`} className={styles.userLink}>
+                <span className={styles.identity}>
+                  <UserAvatar name={user.name} decorative />
+                  <span>{user.name}</span>
+                </span>
+                <span className={styles.role}>{user.role}</span>
+              </PixelButton>
+            </li>
+          ))}
+        </ul>
       </section>
     </main>
   );

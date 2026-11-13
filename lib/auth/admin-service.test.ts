@@ -18,6 +18,7 @@ import {
   AdminValidationError,
   createManagedUser,
   deleteManagedUser,
+  getManagedUser,
   issueTemporaryPassword,
   resetTotp,
   updateManagedUser,
@@ -60,6 +61,23 @@ beforeEach(() => {
 });
 
 describe("managed accounts", () => {
+  it.each([true, false])("loads a single account by ID (exists: %s)", async (exists) => {
+    const account = {
+      id: 2, name: "Tim", role: "User", hasPassword: true,
+      mustSetPassword: false, hasTotp: false,
+    };
+    const where = vi.fn().mockReturnValue({
+      limit: async () => exists ? [account] : [],
+    });
+    mocks.select.mockReturnValueOnce({
+      from: () => ({ innerJoin: () => ({ where }) }),
+    });
+    expect(await getManagedUser(2)).toEqual(exists ? account : undefined);
+    const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
+    expect(query.sql).toBe('"users"."id" = $1');
+    expect(query.params).toEqual([2]);
+  });
+
   it("accepts deletion confirmation regardless of letter case", async () => {
     await deleteManagedUser(2, "tIM");
     expect(mocks.delete).toHaveBeenCalledWith(users);

@@ -81,7 +81,7 @@ never merges or renames accounts.
 
 | Role | Access |
 | ---- | ------ |
-| Admin | Manage accounts and all events, including hidden events. |
+| Admin | Manage accounts; view all events, including hidden events, without event or attendance changes. |
 | User | Create and edit events, including hidden events. |
 | Reader | Read non-hidden events only; no event or attendance changes. |
 
@@ -90,8 +90,9 @@ current database role, so changes apply on the next request without signing
 out. Only accounts with the **User** role can be selected as an event organiser.
 Owning an event never gives a Reader permission to edit it.
 
-The Admin page shows names, roles, and password/authenticator setup status.
-It can create User/Reader accounts, rename them, change between those roles,
+The Admin page (`/admin`) lists users. Select a user to open their management
+page (`/admin/[id]`), showing password/authenticator setup status. Create users
+on `/admin/new`. These pages can create User/Reader accounts, rename them, change between those roles,
 issue temporary passwords, reset authenticators, and delete accounts.
 Temporary passwords appear only in the action response and cannot be retrieved
 later. Deleting an account requires typing its current name and permanently

@@ -25,12 +25,15 @@ import EditEventPage from "@/app/(authenticated)/events/[id]/edit/page";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.findSessionByToken.mockResolvedValue({
-    user: { id: 3, name: "Reader", role: "Reader" },
-  });
 });
 
-describe("Reader permissions across event entry points", () => {
+describe.each(["Reader", "Admin"])("%s permissions across event entry points", (role) => {
+  beforeEach(() => {
+    mocks.findSessionByToken.mockResolvedValue({
+      user: { id: 3, name: role, role },
+    });
+  });
+
   it("denies direct navigation to new and edit forms before loading data", async () => {
     await expect(NewEventPage({ searchParams: Promise.resolve({}) })).rejects.toThrow("NEXT_REDIRECT");
     await expect(EditEventPage({ params: Promise.resolve({ id: "1" }) })).rejects.toThrow("NEXT_REDIRECT");

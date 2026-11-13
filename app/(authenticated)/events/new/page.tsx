@@ -18,7 +18,7 @@ export default async function NewEventPage({
   const { date } = await searchParams;
   const requestedDate = typeof date === "string" ? parseDateKey(date) : null;
   const initialDate = formatDateKey(requestedDate ?? new Date());
-  const session = await requirePageRole(["Admin", "User"]);
+  const session = await requirePageRole(["User"]);
   const [householdUsers, eventIcons] = await Promise.all([
     db
       .select({

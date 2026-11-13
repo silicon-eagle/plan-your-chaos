@@ -32,7 +32,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
     notFound();
   }
 
-  await requirePageRole(["Admin", "User"]);
+  await requirePageRole(["User"]);
 
   const [event] = await db
     .select()

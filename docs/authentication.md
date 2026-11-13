@@ -59,7 +59,7 @@ The real `user_roles` table contains exactly three fixed rows:
 
 | ID | Name | Access |
 | --- | --- | --- |
-| 1 | Admin | Account management and event editing, including hidden events. |
+| 1 | Admin | Account management; read-only access to all events, including hidden events. |
 | 2 | User | Event editing, including hidden events. |
 | 3 | Reader | Read non-hidden events only. |
 
@@ -482,6 +482,8 @@ so the folder name does not appear in URLs:
 | `app/(authenticated)/events/page.tsx` | `/events` |
 | `app/(authenticated)/user/page.tsx` | `/user` |
 | `app/(authenticated)/admin/page.tsx` | `/admin` |
+| `app/(authenticated)/admin/[id]/page.tsx` | `/admin/[id]` |
+| `app/(authenticated)/admin/new/page.tsx` | `/admin/new` |
 
 The layout calls `requirePageSession`. That helper performs a complete session
 lookup and redirects invalid sessions to `/login`.
@@ -508,8 +510,8 @@ Server Components can choose the helper that matches their behavior:
 ### Server Actions
 
 Protected Server Actions validate the current database role before mutations.
-Event mutations allow Admin/User; every account-management action independently
-calls `requireRole(["Admin"])`. Readers cannot mutate events or attendance,
+Event mutations allow only User; every account-management action independently
+calls `requireRole(["Admin"])`. Admins and Readers cannot mutate events or attendance,
 even when they previously organised an event.
 
 Event creation/editing validates the selected organiser against the database:
@@ -529,18 +531,18 @@ The wrapper:
 1. Validates the session from the cookie.
 2. Returns HTTP `401` if authentication fails.
 3. Allows `GET` and `HEAD` after authentication.
-4. Requires Admin/User and a valid same-origin `Origin` header for every other method.
+4. Requires User and a valid same-origin `Origin` header for every other method.
 5. Returns JSON HTTP `403` before the handler when role or origin checks fail.
 6. Passes the authenticated session into the handler.
 
 The wrapper currently protects event and attendance routes. It fails closed
-for Reader or unknown roles on mutations. Account-management Server Actions
+for Admin, Reader, or unknown roles on mutations. Account-management Server Actions
 use their separate Admin-only guard.
 
 All event reads, including individual events and attendee lists, apply the
 visibility predicate: Readers see only events with `hidden = false`; Admin and
 User can see hidden events too. Hidden defaults to false. Read access or event
-ownership never grants mutation access to a Reader.
+ownership never grants mutation access to an Admin or Reader.
 
 The same-origin check supplements `SameSite=Lax` cookies and protects
 state-changing API requests from cross-site submission.
@@ -564,7 +566,9 @@ Authentication recovery is intentionally administrator-managed.
 
 ### Admin page
 
-`/admin` checks `requirePageRole(["Admin"])` before querying account metadata.
+`/admin` lists clickable users, `/admin/[id]` manages one account, and `/admin/new`
+creates an account. Each page checks `requirePageRole(["Admin"])` before querying
+account metadata or rendering management controls.
 Only names, roles, and password/authenticator setup booleans are returned to
 the client; password hashes and TOTP secrets are never included.
 
@@ -595,6 +599,10 @@ stored in plaintext. Share them privately. After resetting the signed-in
 Admin, the response keeps any one-time password visible and disables further
 management, with a sign-in link; an immediate protected-page refresh would
 otherwise lose the password to a redirect.
+
+Creation keeps the temporary password on the creation page with a link to the
+new account. Successful deletion returns to the user list. Other changes
+invalidate both the list and the affected account page.
 
 ### Issue or reset a password
 

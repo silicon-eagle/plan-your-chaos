@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 const mocks = vi.hoisted(() => ({
@@ -21,6 +21,10 @@ vi.mock("./EventListClient", () => ({
 
 import { EventList } from "./EventList";
 
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe("EventList", () => {
   it.each(["Reader", "User", "Admin"])("gates the create control for %s", async (role) => {
     mocks.select.mockClear();
@@ -34,7 +38,7 @@ describe("EventList", () => {
       from: new Date("2026-08-01"), to: new Date("2026-09-01"),
       showCreateButton: true, showFilters: false,
     }));
-    expect(screen.getByText(role === "Reader" ? "Read only" : "Can create")).toBeInTheDocument();
+    expect(screen.getByText(role === "User" ? "Can create" : "Read only")).toBeInTheDocument();
     mocks.select.mockClear();
   });
 

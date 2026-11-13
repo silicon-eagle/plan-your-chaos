@@ -4,11 +4,13 @@ import { and, asc, eq, gt, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { requireSession } from "@/lib/auth/authorization";
-import { canEditEvents, type UserRole } from "@/lib/auth/roles";
+import type { UserRole } from "@/lib/auth/roles";
 import { withDatabaseLogging } from "@/lib/logging/logger";
 
 export function eventVisibility(role: UserRole) {
-  return canEditEvents(role) ? undefined : eq(events.hidden, false);
+  return role === "Admin" || role === "User"
+    ? undefined
+    : eq(events.hidden, false);
 }
 
 export async function getEventsInRange(from: Date, to: Date) {

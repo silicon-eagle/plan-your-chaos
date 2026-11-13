@@ -5,7 +5,7 @@ import type { ManagedUser } from "@/lib/auth/admin-service";
 const mocks = vi.hoisted(() => ({ manageUserAction: vi.fn() }));
 vi.mock("./actions", () => ({ manageUserAction: mocks.manageUserAction }));
 
-import { AdminUsers } from "./AdminUsers";
+import { AdminUserForm } from "./AdminUserForm";
 
 const users: ManagedUser[] = [
   { id: 1, name: "Admin", role: "Admin", hasPassword: true, mustSetPassword: false, hasTotp: true },
@@ -18,18 +18,27 @@ beforeEach(() => {
 });
 
 describe("admin account management", () => {
-  it("shows setup status and only User/Reader creation choices", () => {
-    render(<AdminUsers users={users} currentUserId={1} />);
+  it("offers only User/Reader creation choices on the creation form", () => {
+    render(<AdminUserForm currentUserId={1} />);
     const create = screen.getByRole("form", { name: "Create account" });
     expect(within(create).getAllByRole("option").map((option) => option.textContent))
       .toEqual(["User", "Reader"]);
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  });
+
+  it("shows setup status and management controls only for the selected user", () => {
+    const { container } = render(<AdminUserForm user={users[1]} currentUserId={1} />);
     expect(screen.getByText("No password issued")).toBeInTheDocument();
-    expect(screen.getByText("Password change required")).toBeInTheDocument();
-    expect(screen.getAllByText("Authenticator not enrolled")).toHaveLength(2);
+    expect(screen.getByText("Authenticator not enrolled")).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Create account" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Visitor")).not.toBeInTheDocument();
+    for (const form of container.querySelectorAll("form")) {
+      expect(new FormData(form).get("userId")).toBe("2");
+    }
   });
 
   it("never offers Admin rename, demotion, or deletion controls", () => {
-    render(<AdminUsers users={users} currentUserId={1} />);
+    render(<AdminUserForm user={users[0]} currentUserId={1} />);
     const admin = screen.getByRole("article", { name: "Admin" });
     expect(within(admin).queryByRole("textbox")).not.toBeInTheDocument();
     expect(within(admin).queryByRole("combobox")).not.toBeInTheDocument();
@@ -38,7 +47,7 @@ describe("admin account management", () => {
   });
 
   it("requires named confirmation and warns about cascading event deletion", () => {
-    render(<AdminUsers users={users} currentUserId={1} />);
+    render(<AdminUserForm user={users[1]} currentUserId={1} />);
     const account = screen.getByRole("article", { name: "Tim" });
     const summary = within(account).getByText("Delete account");
     fireEvent.click(summary);
@@ -48,12 +57,13 @@ describe("admin account management", () => {
 
   it("shows a generated password once in the response and clears it on a later result", async () => {
     mocks.manageUserAction
-      .mockResolvedValueOnce({ message: "Created.", temporaryPassword: "one-time-secret" })
+      .mockResolvedValueOnce({ message: "Created.", temporaryPassword: "one-time-secret", createdUserId: 2 })
       .mockResolvedValueOnce({ message: "Created another account." });
-    render(<AdminUsers users={users} currentUserId={1} />);
+    render(<AdminUserForm currentUserId={1} />);
     const form = screen.getByRole("form", { name: "Create account" });
     fireEvent.submit(form);
     expect(await screen.findByText("one-time-secret")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Manage account" })).toHaveAttribute("href", "/admin/2");
     fireEvent.submit(form);
     await waitFor(() => expect(screen.queryByText("one-time-secret")).not.toBeInTheDocument());
   });
@@ -62,10 +72,10 @@ describe("admin account management", () => {
     mocks.manageUserAction.mockResolvedValue({
       message: "Password issued.", temporaryPassword: "admin-secret", signedOut: true,
     });
-    render(<AdminUsers users={users} currentUserId={1} />);
+    render(<AdminUserForm user={users[0]} currentUserId={1} />);
     fireEvent.submit(screen.getByRole("form", { name: "Reset authentication for Admin" }));
     expect(await screen.findByText("admin-secret")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in again" })).toHaveAttribute("href", "/login");
-    expect(screen.queryByRole("form", { name: "Create account" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("form")).not.toBeInTheDocument();
   });
 });

@@ -12,7 +12,7 @@ import {
 } from "@/lib/logging/logger";
 
 export async function deleteEvent(formData: FormData) {
-  await requireRole(["Admin", "User"]);
+  await requireRole(["User"]);
   const eventId = parsePositiveInteger(formData.get("eventId"));
 
   if (!eventId) {

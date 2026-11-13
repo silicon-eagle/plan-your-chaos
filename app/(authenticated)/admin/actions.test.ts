@@ -8,11 +8,13 @@ const mocks = vi.hoisted(() => ({
   issueTemporaryPassword: vi.fn(),
   resetTotp: vi.fn(),
   revalidatePath: vi.fn(),
+  redirect: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/authorization", () => ({ requireRole: mocks.requireRole }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/lib/auth/admin-service", () => ({
   ...mocks,
   AdminValidationError: class AdminValidationError extends Error {},
@@ -35,6 +37,7 @@ beforeEach(() => {
     id: 2, name: "Alice", temporaryPassword: "temporary-secret",
   });
   mocks.issueTemporaryPassword.mockResolvedValue("temporary-secret");
+  mocks.redirect.mockImplementation(() => { throw new Error("NEXT_REDIRECT"); });
 });
 
 describe("admin server actions", () => {
@@ -55,6 +58,7 @@ describe("admin server actions", () => {
   it("returns a newly generated password only in the action response", async () => {
     expect(await manageUserAction({}, form("create"))).toMatchObject({
       temporaryPassword: "temporary-secret",
+      createdUserId: 2,
     });
     expect(mocks.createManagedUser).toHaveBeenCalledWith("Alice", "Reader");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin");
@@ -66,11 +70,16 @@ describe("admin server actions", () => {
       form("update"),
     );
     expect(result).not.toHaveProperty("temporaryPassword");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin/2");
   });
 
-  it("forwards the explicit deletion confirmation", async () => {
-    await manageUserAction({}, form("delete", { confirmation: "Alice" }));
+  it("returns to the user list after deleting the selected account", async () => {
+    await expect(manageUserAction({}, form("delete", { confirmation: "Alice" })))
+      .rejects.toThrow("NEXT_REDIRECT");
     expect(mocks.deleteManagedUser).toHaveBeenCalledWith(2, "Alice");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin/2");
+    expect(mocks.redirect).toHaveBeenCalledWith("/admin");
   });
 
   it.each(["", "0", "-1", "1.5", "NaN", "9007199254740992"])(

@@ -123,7 +123,7 @@ async function invalidateAuthentication(
     .where(and(eq(loginChallenges.userId, userId), isNull(loginChallenges.consumedAt)));
 }
 
-export async function listManagedUsers(): Promise<ManagedUser[]> {
+function managedUserQuery() {
   return db.select({
     id: users.id,
     name: users.name,
@@ -133,8 +133,17 @@ export async function listManagedUsers(): Promise<ManagedUser[]> {
     hasTotp: sql<boolean>`${users.totpSecretEncrypted} is not null and ${users.totpEnabledAt} is not null`,
   })
     .from(users)
-    .innerJoin(userRoles, eq(users.roleId, userRoles.id))
-    .orderBy(asc(users.id));
+    .innerJoin(userRoles, eq(users.roleId, userRoles.id));
+}
+
+export async function listManagedUsers(): Promise<ManagedUser[]> {
+  return managedUserQuery().orderBy(asc(users.id));
+}
+
+export async function getManagedUser(userId: number): Promise<ManagedUser | undefined> {
+  validateUserId(userId);
+  const [user] = await managedUserQuery().where(eq(users.id, userId)).limit(1);
+  return user;
 }
 
 export async function createManagedUser(name: string, role: string) {

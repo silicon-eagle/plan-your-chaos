@@ -19,7 +19,7 @@ export async function updateEvent(
   _state: EventFormState,
   formData: FormData,
 ): Promise<EventFormState> {
-  await requireRole(["Admin", "User"]);
+  await requireRole(["User"]);
   const parsed = parseEventFormData(formData);
 
   if ("error" in parsed) {

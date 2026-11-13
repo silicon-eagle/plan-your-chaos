@@ -1,35 +1,81 @@
 .page {
-  width: min(100%, 64rem);
+  align-items: start;
+  padding-top: var(--page-top-spacing);
+}
+
+.panel {
+  display: grid;
+  width: min(100%, 42rem);
   min-width: 0;
+  gap: 1.5rem;
+  padding: 2rem;
+  background: var(--background);
   line-height: 1.6;
 }
 
-.page h2 {
-  margin: 0 0 0.75rem;
-  color: var(--highlight);
-  font-size: 22px;
-  font-weight: 400;
+.panel h1 {
   overflow-wrap: anywhere;
 }
 
-.management,
-.accounts {
+.heading,
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.heading {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.identity span {
+  overflow-wrap: anywhere;
+}
+
+.userList {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.userList .userLink {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  font-size: 20px;
+}
+
+.role {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.linkButton {
+  padding: 0.5rem 0.75rem;
+}
+
+.management {
+  min-width: 0;
+}
+
+.account {
   display: grid;
   min-width: 0;
   gap: 1.5rem;
 }
 
-.panel,
 .feedback {
   min-width: 0;
-  padding: 1.25rem;
-  border: 4px solid var(--primary);
-  background: var(--surface);
-}
-
-.feedback {
   margin: 0 0 1rem;
-  border-color: var(--gold);
+  padding: 1rem;
+  border: 4px solid var(--primary);
+  background: var(--background);
 }
 
 .fields,
@@ -47,16 +93,18 @@
 .field {
   display: grid;
   flex: 1 1 12rem;
-  gap: 0.25rem;
+  gap: 0.5rem;
   min-width: 0;
+  color: var(--highlight);
 }
 
 .input {
   width: 100%;
+  min-width: 0;
   min-height: 44px;
-  border: 3px solid var(--light-purple);
+  border: 4px solid var(--primary);
   border-radius: 0;
-  padding: 0.5rem;
+  padding: 0.75rem;
   background: var(--background);
   color: var(--light-purple);
   font: inherit;
@@ -64,7 +112,8 @@
 
 .input:focus-visible,
 .deletion summary:focus-visible {
-  outline: 3px solid var(--yellow);
+  border-color: var(--yellow);
+  outline: 3px solid var(--primary);
   outline-offset: 3px;
 }
 
@@ -78,7 +127,9 @@
 }
 
 .status {
+  margin: 0;
   padding-left: 1.5rem;
+  font-size: 14px;
 }
 
 .warning {
@@ -86,7 +137,6 @@
 }
 
 .deletion {
-  margin-top: 1.5rem;
   border-top: 3px solid var(--primary);
   padding-top: 1rem;
 }
@@ -109,10 +159,14 @@
   user-select: all;
 }
 
-@media (max-width: 40rem) {
+@media (max-width: 42rem) {
+  .page {
+    padding-inline: 1rem;
+  }
+
   .panel,
   .feedback {
-    padding: 0.75rem;
+    padding: 1rem;
   }
 
   .fields button,

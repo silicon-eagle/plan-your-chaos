@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/authorization";
 import {
   AdminValidationError,
@@ -16,6 +17,7 @@ export type AdminActionState = {
   message?: string;
   temporaryPassword?: string;
   signedOut?: boolean;
+  createdUserId?: number;
 };
 
 export async function manageUserAction(
@@ -33,6 +35,7 @@ export async function manageUserAction(
       result = {
         message: `${user.name} created. Share this temporary password through a trusted channel.`,
         temporaryPassword: user.temporaryPassword,
+        createdUserId: user.id,
       };
     } else {
       const userId = Number(field("userId"));
@@ -44,7 +47,9 @@ export async function manageUserAction(
         result = { message: "Account updated." };
       } else if (operation === "delete") {
         await deleteManagedUser(userId, field("confirmation"));
-        result = { message: "Account and all its organised events deleted." };
+        revalidatePath(`/admin/${userId}`);
+        revalidatePath("/admin");
+        redirect("/admin");
       } else if (operation === "issue-password") {
         const temporaryPassword = await issueTemporaryPassword(userId);
         result = {
@@ -61,6 +66,7 @@ export async function manageUserAction(
       } else {
         throw new AdminValidationError("Invalid account operation.");
       }
+      if (!result.signedOut) revalidatePath(`/admin/${userId}`);
     }
     // Re-rendering a protected page after self-reset would redirect before the
     // administrator could copy their one-time temporary password.
