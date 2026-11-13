@@ -1,19 +1,15 @@
 import "dotenv/config";
 
-import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { and, isNotNull, isNull, lt, or } from "drizzle-orm";
-import { eq } from "drizzle-orm";
+import { isNotNull, lt, or } from "drizzle-orm";
 
 import { closeDatabase, db } from "@/db/client";
-import { loginChallenges, sessions, users } from "@/db/schema";
-import { hashPassword } from "@/lib/auth/passwords";
+import { loginChallenges, sessions } from "@/db/schema";
+import {
+  issueTemporaryPassword as issuePassword,
+  resetTotp as resetUserTotp,
+} from "@/lib/auth/admin-service";
 import { logger } from "@/lib/logging/logger";
-
-function generateTemporaryPassword(): string {
-  // 24 bytes → 32 base64url characters (≥ 20 required)
-  return randomBytes(24).toString("base64url");
-}
 
 function parseExactUserArg(
   command: "issue-password" | "reset-totp",
@@ -38,94 +34,14 @@ function parseExactUserArg(
 }
 
 export async function issueTemporaryPassword(userName: string): Promise<string> {
-  const now = new Date();
-
-  const temporaryPassword = await db.transaction(async (tx) => {
-    const [user] = await tx
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.name, userName))
-      .limit(1);
-
-    if (!user) {
-      throw new Error(`User not found: ${userName}`);
-    }
-
-    const temporaryPassword = generateTemporaryPassword();
-    const passwordHash = await hashPassword(temporaryPassword);
-
-    await tx
-      .update(users)
-      .set({
-        passwordHash,
-        mustSetPassword: true,
-        failedLoginCount: 0,
-        lockedUntil: null,
-      })
-      .where(eq(users.id, user.id));
-
-    await tx
-      .update(sessions)
-      .set({ revokedAt: now, revocationReason: "admin:issue-password" })
-      .where(eq(sessions.userId, user.id));
-
-    await tx
-      .update(loginChallenges)
-      .set({ consumedAt: now })
-      .where(
-        and(
-          eq(loginChallenges.userId, user.id),
-          isNull(loginChallenges.consumedAt),
-        ),
-      );
-
-    return temporaryPassword;
-  });
-
+  const temporaryPassword = await issuePassword(userName);
   logger.info("auth.admin.issued-temporary-password", { userName });
 
   return temporaryPassword;
 }
 
 export async function resetTotp(userName: string): Promise<void> {
-  const now = new Date();
-
-  await db.transaction(async (tx) => {
-    const [user] = await tx
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.name, userName))
-      .limit(1);
-
-    if (!user) {
-      throw new Error(`User not found: ${userName}`);
-    }
-
-    await tx
-      .update(users)
-      .set({
-        totpSecretEncrypted: null,
-        totpEnabledAt: null,
-        lastTotpCounter: null,
-      })
-      .where(eq(users.id, user.id));
-
-    await tx
-      .update(sessions)
-      .set({ revokedAt: now, revocationReason: "admin:reset-totp" })
-      .where(eq(sessions.userId, user.id));
-
-    await tx
-      .update(loginChallenges)
-      .set({ consumedAt: now })
-      .where(
-        and(
-          eq(loginChallenges.userId, user.id),
-          isNull(loginChallenges.consumedAt),
-        ),
-      );
-  });
-
+  await resetUserTotp(userName);
   logger.info("auth.admin.reset-totp", { userName });
 }
 

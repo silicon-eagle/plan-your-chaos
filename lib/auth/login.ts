@@ -25,11 +25,12 @@ import { createSession } from "./sessions";
 import { generateOpaqueToken, hashOpaqueToken } from "./tokens";
 import { createTotpEnrollment, verifyTotpCode } from "./totp";
 import { decryptTotpSecret, encryptTotpSecret } from "./totp-encryption";
+import { usernameMatches } from "./usernames";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
 export type LoginInput = {
-  userId: number;
+  username: string;
   password: string;
   totpCode: string;
 };
@@ -72,7 +73,7 @@ export async function beginLogin(
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.id, input.userId))
+    .where(usernameMatches(input.username))
     .limit(1);
 
   if (!user) {

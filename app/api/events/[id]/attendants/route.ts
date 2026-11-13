@@ -1,10 +1,11 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
 import { withApiAuthentication } from "@/lib/auth/authorization";
 import type { AuthenticatedSession } from "@/lib/auth/sessions";
+import { eventVisibility } from "@/lib/events/queries";
 import {
   logger,
   withDatabaseLogging,
@@ -27,10 +28,9 @@ async function getEventId(context: RouteContext) {
 async function getAttendants(
   _request: Request,
   context: RouteContext,
-  _session: AuthenticatedSession,
+  session: AuthenticatedSession,
 ) {
   void _request;
-  void _session;
   const eventId = await getEventId(context);
 
   if (!eventId) {
@@ -40,7 +40,7 @@ async function getAttendants(
   const [event] = await db
     .select({ id: events.id })
     .from(events)
-    .where(eq(events.id, eventId))
+    .where(and(eq(events.id, eventId), eventVisibility(session.user.role)))
     .limit(1);
 
   if (!event) {
@@ -51,7 +51,6 @@ async function getAttendants(
     .select({
       id: users.id,
       name: users.name,
-      avatarPath: users.avatarPath,
       createdAt: users.createdAt,
     })
     .from(eventAttendants)
@@ -112,7 +111,6 @@ async function addAttendant(
     .select({
       id: users.id,
       name: users.name,
-      avatarPath: users.avatarPath,
       createdAt: users.createdAt,
     })
     .from(users)

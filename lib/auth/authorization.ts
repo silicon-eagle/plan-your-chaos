@@ -4,6 +4,14 @@ import { redirect } from "next/navigation";
 import type { RouteHandler } from "@/lib/logging/logger";
 import { getSessionToken } from "./cookies";
 import { type AuthenticatedSession, findSessionByToken } from "./sessions";
+import { canEditEvents, type UserRole } from "./roles";
+
+export class ForbiddenError extends Error {
+  constructor() {
+    super("Forbidden");
+    this.name = "ForbiddenError";
+  }
+}
 
 export class UnauthenticatedError extends Error {
   constructor() {
@@ -31,6 +39,26 @@ export async function requirePageSession(): Promise<AuthenticatedSession> {
     if (error instanceof UnauthenticatedError) {
       redirect("/login");
     }
+    throw error;
+  }
+}
+
+export async function requireRole(
+  allowedRoles: readonly UserRole[],
+): Promise<AuthenticatedSession> {
+  const session = await requireSession();
+  if (!allowedRoles.includes(session.user.role)) throw new ForbiddenError();
+  return session;
+}
+
+export async function requirePageRole(
+  allowedRoles: readonly UserRole[],
+): Promise<AuthenticatedSession> {
+  try {
+    return await requireRole(allowedRoles);
+  } catch (error) {
+    if (error instanceof UnauthenticatedError) redirect("/login");
+    if (error instanceof ForbiddenError) redirect("/");
     throw error;
   }
 }
@@ -63,7 +91,10 @@ export function withApiAuthentication<Arguments extends unknown[]>(
       return Response.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    if (!SAFE_METHODS.has(request.method) && !isSameOrigin(request)) {
+    if (
+      !SAFE_METHODS.has(request.method) &&
+      (!canEditEvents(session.user.role) || !isSameOrigin(request))
+    ) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 

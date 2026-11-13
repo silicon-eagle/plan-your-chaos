@@ -5,6 +5,7 @@ import { withApiAuthentication } from "@/lib/auth/authorization";
 import type { AuthenticatedSession } from "@/lib/auth/sessions";
 import { resolveEventIconId } from "@/lib/events/icons";
 import { getEventsInRange } from "@/lib/events/queries";
+import { isEventOwner } from "@/lib/events/owners";
 import {
   logger,
   withDatabaseLogging,
@@ -60,8 +61,9 @@ async function createEvent(
   const title = typeof input.title === "string" ? input.title.trim() : "";
   const startsAt = parseDate(input.startsAt);
   const endsAt = parseDate(input.endsAt);
-  const userId = session.user.id;
+  const userId = input.userId ?? session.user.id;
   const allDay = input.allDay ?? false;
+  const hidden = input.hidden ?? false;
   const notes = input.notes ?? null;
 
   if (!title || !startsAt || !endsAt) {
@@ -76,6 +78,13 @@ async function createEvent(
 
   if (typeof allDay !== "boolean") {
     return errorResponse("allDay must be a boolean");
+  }
+
+  if (typeof hidden !== "boolean") {
+    return errorResponse("hidden must be a boolean");
+  }
+  if (typeof userId !== "number" || !(await isEventOwner(userId))) {
+    return errorResponse("userId must reference an account with the User role");
   }
 
   if (notes !== null && typeof notes !== "string") {
@@ -99,6 +108,7 @@ async function createEvent(
           startsAt,
           endsAt,
           allDay,
+          hidden,
           userId,
           notes,
           iconId,

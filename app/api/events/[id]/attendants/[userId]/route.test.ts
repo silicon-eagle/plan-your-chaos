@@ -29,7 +29,7 @@ import { DELETE } from "./route";
 
 const baseSession = {
   id: 1,
-  user: { id: 1, name: "Alice", avatarPath: null },
+  user: { id: 1, name: "Alice", role: "User" },
   createdAt: new Date(),
   lastActiveAt: new Date(),
   idleExpiresAt: new Date(),

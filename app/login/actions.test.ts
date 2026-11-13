@@ -44,35 +44,37 @@ beforeEach(() => {
 // ── loginAction ────────────────────────────────────────────────────────────
 
 describe("loginAction", () => {
-  it("returns an error for userId <= 0", async () => {
+  it("returns an error for an empty username", async () => {
     const fd = new FormData();
-    fd.set("userId", "0");
+    fd.set("username", "   ");
     fd.set("password", "pass");
     fd.set("totpCode", "");
 
     const result = await loginAction(fd);
 
-    expect(result.error).toMatch(/select a household member/i);
+    expect(result.error).toBe("Enter your username.");
     expect(mocks.beginLogin).not.toHaveBeenCalled();
   });
 
   it("returns set_password step when beginLogin requires it", async () => {
     mocks.beginLogin.mockResolvedValue({ status: "set_password" });
     const fd = new FormData();
-    fd.set("userId", "1");
-    fd.set("password", "pass");
+    fd.set("username", " AdMiN ");
+    fd.set("password", "CaseSensitive Password!");
     fd.set("totpCode", "");
 
     const result = await loginAction(fd);
 
-    expect(mocks.beginLogin).toHaveBeenCalled();
+    expect(mocks.beginLogin).toHaveBeenCalledWith({
+      username: "AdMiN", password: "CaseSensitive Password!", totpCode: "",
+    });
     expect(result.step).toBe("set_password");
   });
 
   it("redirects to / on successful authentication", async () => {
     mocks.beginLogin.mockResolvedValue({ status: "authenticated" });
     const fd = new FormData();
-    fd.set("userId", "1");
+    fd.set("username", "Admin");
     fd.set("password", "pass");
     fd.set("totpCode", "");
 
@@ -87,7 +89,7 @@ describe("loginAction", () => {
       message: "Invalid credentials.",
     });
     const fd = new FormData();
-    fd.set("userId", "1");
+    fd.set("username", "Admin");
     fd.set("password", "wrong");
     fd.set("totpCode", "");
 
@@ -193,7 +195,7 @@ describe("loginFlowAction dispatch", () => {
     });
     const fd = new FormData();
     fd.set("_action", "login");
-    fd.set("userId", "1");
+    fd.set("username", "Admin");
     fd.set("password", "pass");
     fd.set("totpCode", "");
 

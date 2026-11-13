@@ -12,7 +12,7 @@ export default async function UserPage() {
 
         <div className="user-list">
           <div className="user-identity">
-            <UserAvatar name={user.name} src={user.avatarPath} decorative />
+            <UserAvatar name={user.name} decorative />
             <span>{user.name}</span>
           </div>
         </div>

@@ -7,11 +7,13 @@ import styles from "./DayNavigation.module.css";
 type DayNavigationProps = {
   date: Date;
   currentDate?: Date;
+  canEdit?: boolean;
 };
 
 export function DayNavigation({
   date,
   currentDate = new Date(),
+  canEdit = false,
 }: DayNavigationProps) {
   const dateKey = formatDateKey(date);
   const links = [
@@ -39,7 +41,7 @@ export function DayNavigation({
 
   return (
     <nav className={styles.navigation} aria-label="Day navigation">
-      {links.map((link) => (
+      {links.filter((link) => canEdit || link.image !== "newBtn").map((link) => (
         <Link
           className={buttonStyles.button}
           href={link.href}

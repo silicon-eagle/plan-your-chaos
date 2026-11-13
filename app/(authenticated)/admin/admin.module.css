@@ -1,0 +1,122 @@
+.page {
+  width: min(100%, 64rem);
+  min-width: 0;
+  line-height: 1.6;
+}
+
+.page h2 {
+  margin: 0 0 0.75rem;
+  color: var(--highlight);
+  font-size: 22px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.management,
+.accounts {
+  display: grid;
+  min-width: 0;
+  gap: 1.5rem;
+}
+
+.panel,
+.feedback {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 4px solid var(--primary);
+  background: var(--surface);
+}
+
+.feedback {
+  margin: 0 0 1rem;
+  border-color: var(--gold);
+}
+
+.fields,
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.field {
+  display: grid;
+  flex: 1 1 12rem;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  border: 3px solid var(--light-purple);
+  border-radius: 0;
+  padding: 0.5rem;
+  background: var(--background);
+  color: var(--light-purple);
+  font: inherit;
+}
+
+.input:focus-visible,
+.deletion summary:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 3px;
+}
+
+.fields button,
+.buttons button {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0.75rem;
+  font-size: 16px;
+  white-space: normal;
+}
+
+.status {
+  padding-left: 1.5rem;
+}
+
+.warning {
+  color: var(--highlight);
+}
+
+.deletion {
+  margin-top: 1.5rem;
+  border-top: 3px solid var(--primary);
+  padding-top: 1rem;
+}
+
+.deletion summary {
+  width: fit-content;
+  padding: 0.5rem 0;
+  color: var(--highlight);
+  cursor: pointer;
+}
+
+.password {
+  display: block;
+  padding: 0.75rem;
+  background: var(--background);
+  color: var(--highlight);
+  font-family: monospace;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+@media (max-width: 40rem) {
+  .panel,
+  .feedback {
+    padding: 0.75rem;
+  }
+
+  .fields button,
+  .buttons button {
+    width: 100%;
+  }
+}

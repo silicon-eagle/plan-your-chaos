@@ -3,7 +3,7 @@
 Plan Your Chaos uses administrator-managed, password-plus-TOTP
 authentication. Users cannot register, recover an account by email, or reset
 their own password or authenticator. An administrator creates the initial
-login path and handles later recovery through the `auth:admin` CLI.
+login path and handles later recovery through the Admin page or `auth:admin` CLI.
 
 This document explains both the login flow and how authentication is enforced
 inside the application.
@@ -15,6 +15,9 @@ Authentication is split across several layers:
 | Layer | Responsibility |
 | --- | --- |
 | `scripts/auth-admin.ts` | Issues temporary passwords, resets TOTP, and cleans up expired authentication records. |
+| `app/(authenticated)/admin` | Admin-only account listing, creation, role/name changes, credential resets, and confirmed deletion. |
+| `lib/auth/admin-service.ts` | Transactional account management and shared web/CLI reset operations. |
+| `lib/auth/roles.ts` | Fixed role IDs and event-write policy. |
 | `app/login` | Renders the login, password setup, and TOTP enrollment forms. |
 | `lib/auth/login.ts` | Coordinates password verification, TOTP verification, setup challenges, lockout, and successful login. |
 | `lib/auth/challenges.ts` | Manages short-lived password and TOTP setup state. |
@@ -37,6 +40,7 @@ Each household member has one user row. Authentication-related columns are:
 
 | Column | Purpose |
 | --- | --- |
+| `roleId` | Foreign key to the immutable `user_roles` rows; defaults to User (2). |
 | `passwordHash` | Argon2id hash of the current password. `null` means no password has been issued. |
 | `mustSetPassword` | Requires the user to replace an administrator-issued temporary password. |
 | `totpSecretEncrypted` | AES-256-GCM encrypted TOTP secret. |
@@ -45,8 +49,29 @@ Each household member has one user row. Authentication-related columns are:
 | `failedLoginCount` | Number of consecutive failed login attempts. |
 | `lockedUntil` | Prevents login until the lockout expires. |
 
-The seed process creates users and avatars, but it does not assign passwords.
-The currently seeded household members are defined in `db/seed.ts`.
+Avatars are not stored on accounts. The role migration creates Tim and Veerle
+as User accounts once, without changing credentials of existing users.
+Recurring seed runs do not recreate or overwrite household accounts.
+
+### `user_roles` and bootstrap state
+
+The real `user_roles` table contains exactly three fixed rows:
+
+| ID | Name | Access |
+| --- | --- | --- |
+| 1 | Admin | Account management and event editing, including hidden events. |
+| 2 | User | Event editing, including hidden events. |
+| 3 | Reader | Read non-hidden events only. |
+
+A database constraint fixes the ID/name mapping, and a trigger prevents role
+row updates, deletion, or truncation. Existing users migrate to User. Role
+changes update `users.roleId`, never the role definitions.
+
+`seed_initializations` records successful initial Admin bootstrap. The seed
+uses an advisory transaction lock and writes the marker with the new account
+atomically. Repeated/concurrent deployments cannot overwrite credentials or
+resurrect deleted accounts. Tim/Veerle inserts live in the one-time migration,
+not the recurring seed; icons remain idempotently seeded.
 
 ### `loginChallenges`
 
@@ -82,9 +107,22 @@ A session row contains:
 
 ## Initial account setup
 
-Seeding the database creates the household members without passwords. An
-administrator must issue a temporary password to every user before anyone can
-log in.
+Before first deployment, set a private `INIT_ADMIN_PASSWORD` in `.env`.
+Compose passes it to the `migrate` service. When initial bootstrap is needed,
+the seed creates **Admin** with an Argon2id hash and `mustSetPassword = true`.
+A missing/blank initial password makes bootstrap fail explicitly. Password
+generation never occurs in the Docker entrypoint.
+
+Sign in as Admin using that password, choose a new password, and complete the
+existing TOTP enrollment flow. Remove `INIT_ADMIN_PASSWORD` from `.env` after
+successful bootstrap. Later deployments never use it to reset credentials.
+An existing Admin-role account (even renamed) is preserved. An ordinary
+account already named Admin causes an explicit error instead of promotion;
+rename that account before running bootstrap.
+
+The initial Tim and Veerle accounts have no password. Issue their temporary
+passwords from `/admin`, or use the CLI below. Existing credentials on upgraded
+databases remain unchanged.
 
 For local development:
 
@@ -99,7 +137,7 @@ docker compose run --rm migrate \
   pnpm auth:admin issue-password --user Tim
 ```
 
-The name must exactly match a user in the database. The command:
+The name must match a user in the database, ignoring letter case. The command:
 
 1. Generates a 32-character base64url temporary password.
 2. Hashes it with Argon2id.
@@ -118,9 +156,17 @@ destroy their copy after the user receives it.
 `app/login/page.tsx` first checks whether the browser already has a valid
 session. An authenticated visitor is redirected to `/`.
 
-For an unauthenticated visitor, the page loads the household members from the
-database and passes them to `LoginForm`. The user selects their identity rather
-than entering a username.
+For an unauthenticated visitor, the page renders a username text field without
+loading or exposing the account list. Usernames are matched case-insensitively:
+`Admin`, `ADMIN`, `AdMiN`, and `admin` identify the same account. Surrounding
+whitespace is ignored; the stored display spelling is preserved. Passwords and
+verification codes are unchanged.
+
+A unique index on `lower(users.name)` prevents accounts whose names differ
+only by letter case. Migration `0009_case_insensitive_usernames.sql` stops if
+existing accounts collide; resolve those names explicitly before retrying.
+It does not rename, merge, or delete accounts. Admin bootstrap, name-based CLI
+resets, and typed deletion confirmation also ignore letter case.
 
 `LoginForm` is a Client Component because it uses React's `useActionState` to
 move between three form states:
@@ -339,8 +385,13 @@ Challenge cookies are:
 - HTTP-only.
 - `SameSite=Lax`.
 - Restricted to `/`.
-- Marked `Secure` in production.
+- Marked `Secure` according to `AUTH_COOKIE_SECURE` (`true` or `false`).
 - Set to expire with the 10-minute database challenge.
+
+When `AUTH_COOKIE_SECURE` is unset, `Secure` defaults to enabled in production
+and disabled otherwise. Compose forwards the setting and defaults to `true`.
+Set it to `false` for a local HTTP deployment, or `true` behind HTTPS. Invalid
+values are rejected rather than silently selecting a cookie policy.
 
 The application checks the cookie token, expected stage, expiry, and consumed
 state on every setup step. Advancing from password setup to TOTP enrollment
@@ -360,7 +411,7 @@ After successful authentication, `createSession`:
 4. Places the original token in the `plan-your-chaos-session` cookie.
 
 The session cookie uses the same HTTP-only, `SameSite=Lax`, root-path, and
-production-only `Secure` options as the challenge cookie. Its browser expiry is
+configured `Secure` options as the challenge cookie. Its browser expiry is
 the absolute session expiry.
 
 If setting the browser cookie fails after the database row was inserted, the
@@ -372,7 +423,7 @@ application deletes the orphaned session row before propagating the error.
 `findSessionByToken`. Session validation:
 
 1. Hashes the cookie token.
-2. Loads the matching session and user.
+2. Loads the matching session, user, and current role from `user_roles`.
 3. Rejects revoked sessions.
 4. Deletes and rejects sessions that reached either expiry.
 5. Extends the idle expiry when enough time has passed since the last
@@ -390,6 +441,11 @@ The five-minute write interval avoids updating PostgreSQL on every request.
 When activity is persisted, the new idle expiry is capped at the absolute
 expiry. Activity can therefore keep a session alive for up to seven days, but
 never longer.
+
+Roles are never stored as session claims. `AuthenticatedSession.user` contains
+`{ id, name, role }`, and every session lookup joins the current user/role rows.
+Changing User to Reader therefore removes mutation access on the next request,
+without needing to revoke or recreate sessions.
 
 ## Protection inside the application
 
@@ -425,6 +481,7 @@ so the folder name does not appear in URLs:
 | `app/(authenticated)/calendar/page.tsx` | `/calendar` |
 | `app/(authenticated)/events/page.tsx` | `/events` |
 | `app/(authenticated)/user/page.tsx` | `/user` |
+| `app/(authenticated)/admin/page.tsx` | `/admin` |
 
 The layout calls `requirePageSession`. That helper performs a complete session
 lookup and redirects invalid sessions to `/login`.
@@ -445,13 +502,19 @@ Server Components can choose the helper that matches their behavior:
 | `getSession()` | Returns the authenticated session or `null`. Useful for pages that support both public and authenticated views. |
 | `requireSession()` | Returns the session or throws `UnauthenticatedError`. |
 | `requirePageSession()` | Returns the session or redirects to `/login`. |
+| `requireRole(allowedRoles)` | Requires a current allowed role; throws `UnauthenticatedError` or `ForbiddenError`. |
+| `requirePageRole(allowedRoles)` | Redirects unauthenticated visitors to `/login`, and authenticated but unauthorized visitors to `/`. |
 
 ### Server Actions
 
-Protected Server Actions call `requireSession()` before performing work that
-depends on the current user. For example, event creation uses
-`session.user.id` as the event owner instead of trusting a user ID submitted by
-the browser.
+Protected Server Actions validate the current database role before mutations.
+Event mutations allow Admin/User; every account-management action independently
+calls `requireRole(["Admin"])`. Readers cannot mutate events or attendance,
+even when they previously organised an event.
+
+Event creation/editing validates the selected organiser against the database:
+only accounts with the User role are valid organisers. A submitted user ID is
+never trusted merely because it came from the form.
 
 The authenticated layout protects normal navigation to the page, but the
 Server Action must still authorize itself. A client can attempt to invoke an
@@ -466,12 +529,18 @@ The wrapper:
 1. Validates the session from the cookie.
 2. Returns HTTP `401` if authentication fails.
 3. Allows `GET` and `HEAD` after authentication.
-4. Requires a valid same-origin `Origin` header for state-changing methods.
-5. Returns HTTP `403` when the origin check fails.
+4. Requires Admin/User and a valid same-origin `Origin` header for every other method.
+5. Returns JSON HTTP `403` before the handler when role or origin checks fail.
 6. Passes the authenticated session into the handler.
 
-API handlers use `session.user.id` for user-owned changes rather than trusting
-identity fields in request JSON.
+The wrapper currently protects event and attendance routes. It fails closed
+for Reader or unknown roles on mutations. Account-management Server Actions
+use their separate Admin-only guard.
+
+All event reads, including individual events and attendee lists, apply the
+visibility predicate: Readers see only events with `hidden = false`; Admin and
+User can see hidden events too. Hidden defaults to false. Read access or event
+ownership never grants mutation access to a Reader.
 
 The same-origin check supplements `SameSite=Lax` cookies and protects
 state-changing API requests from cross-site submission.
@@ -492,6 +561,40 @@ command deletes it.
 ## Administrative recovery
 
 Authentication recovery is intentionally administrator-managed.
+
+### Admin page
+
+`/admin` checks `requirePageRole(["Admin"])` before querying account metadata.
+Only names, roles, and password/authenticator setup booleans are returned to
+the client; password hashes and TOTP secrets are never included.
+
+Each Server Action rechecks Admin authorization before dispatching to the
+shared transactional service. Supported operations:
+
+- Create User or Reader with a generated 32-character temporary password.
+- Rename a non-admin account or change it between User and Reader.
+- Issue a new temporary password, preserving an enrolled authenticator.
+- Reset TOTP while preserving the password and must-change state.
+- Delete a non-admin after the typed confirmation matches its current name.
+  The UI explicitly warns that all organised events are deleted through the
+  existing foreign-key cascade, along with attendance and authentication data.
+
+The service locks existing account rows before checking their current role
+and mutating them. It never allows Admin creation/promotion, rename, demotion,
+or deletion through management actions, including a demote-then-delete attempt.
+Expected validation/name-conflict errors are shown in the form; infrastructure
+errors propagate rather than being reported as success.
+
+Password/TOTP resets are shared with the CLI and run in one transaction. They
+revoke all sessions and consume active setup challenges, clearing pending
+password/TOTP secrets. Password issuance also clears account lockout and forces
+password replacement; TOTP reset does not alter password state.
+
+Generated passwords are returned once in the action response, never logged or
+stored in plaintext. Share them privately. After resetting the signed-in
+Admin, the response keeps any one-time password visible and disables further
+management, with a sign-in link; an immediate protected-page refresh would
+otherwise lose the password to a redirect.
 
 ### Issue or reset a password
 
@@ -573,7 +676,7 @@ The system assumes:
 | File | Purpose |
 | --- | --- |
 | `db/schema.ts` | Authentication tables and relationships. |
-| `db/seed.ts` | Initial household users. |
+| `db/seed.ts` | One-time Admin bootstrap and idempotent event icons. |
 | `scripts/auth-admin.ts` | Password issuance, TOTP reset, and cleanup CLI. |
 | `app/login/page.tsx` | Loads users and handles already-authenticated visitors. |
 | `app/login/LoginForm.tsx` | Client-side state switch between login and setup forms. |

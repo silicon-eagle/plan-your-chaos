@@ -7,6 +7,7 @@ vi.mock("dotenv/config", () => ({}));
 const txMocks = vi.hoisted(() => ({
   select: vi.fn(),
   update: vi.fn(),
+  execute: vi.fn(),
 }));
 
 const dbMocks = vi.hoisted(() => ({
@@ -47,7 +48,7 @@ import {
 
 function selectReturning(result: unknown[]) {
   const limit = vi.fn().mockResolvedValue(result);
-  const where = vi.fn(() => ({ limit }));
+  const where = vi.fn(() => ({ limit, for: vi.fn(() => ({ limit })) }));
   return { from: vi.fn(() => ({ where })) };
 }
 
@@ -80,7 +81,7 @@ function setupSuccessfulCommandTransaction(
 
 // ── Fixtures ──────────────────────────────────────────────────────────────
 
-const testUser = { id: 42 };
+const testUser = { id: 42, name: "Alice", roleId: 2 };
 const baseNow = new Date("2026-08-28T12:00:00.000Z");
 const originalArgv = [...process.argv];
 

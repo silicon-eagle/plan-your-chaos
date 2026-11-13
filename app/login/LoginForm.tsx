@@ -2,17 +2,12 @@
 
 import { useActionState } from "react";
 import { loginFlowAction, type LoginFormState } from "./actions";
+import { PasswordField } from "./PasswordField";
 import { PasswordSetupForm } from "./PasswordSetupForm";
 import { TotpSetupForm } from "./TotpSetupForm";
 import styles from "./login.module.css";
 
-type UserOption = { id: number; name: string };
-
-type Props = {
-  users: UserOption[];
-};
-
-export function LoginForm({ users }: Props) {
+export function LoginForm() {
   const [state, dispatch, isPending] = useActionState<LoginFormState, FormData>(
     loginFlowAction,
     {},
@@ -53,35 +48,24 @@ export function LoginForm({ users }: Props) {
       </div>
 
       <div className={styles.field}>
-        <label htmlFor="userId">Household Member</label>
-        <select
-          id="userId"
-          name="userId"
-          required
-          className={styles.input}
-        >
-          <option value="" disabled>
-            Select a household member
-          </option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.field}>
-        <label htmlFor="password">Password</label>
+        <label htmlFor="username">Username</label>
         <input
-          id="password"
-          name="password"
-          type="password"
+          id="username"
+          name="username"
+          type="text"
           required
-          autoComplete="current-password"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
           className={styles.input}
         />
       </div>
+
+      <PasswordField
+        label="Password"
+        name="password"
+        autoComplete="current-password"
+      />
 
       <div className={styles.field}>
         <label htmlFor="totpCode">Verification Code</label>

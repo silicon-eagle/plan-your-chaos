@@ -2,6 +2,7 @@ import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireSession } from "@/lib/auth/authorization";
+import { canEditEvents } from "@/lib/auth/roles";
 import { getEventsInRange } from "@/lib/events/queries";
 import {
   EventListClient,
@@ -37,7 +38,7 @@ export async function EventList({
     throw new RangeError("EventList requires a valid date range");
   }
 
-  await requireSession();
+  const session = await requireSession();
 
   const [events, householdUsers] = await Promise.all([
     getEventsInRange(from, to),
@@ -58,10 +59,9 @@ export async function EventList({
     endsAt: event.endsAt.toISOString(),
     allDay: event.allDay,
     icon: event.icon,
-    attendants: event.attendants.map(({ id, name, avatarPath }) => ({
+    attendants: event.attendants.map(({ id, name }) => ({
       id,
       name,
-      avatarPath,
     })),
   }));
 
@@ -69,7 +69,7 @@ export async function EventList({
     <EventListClient
       events={items}
       users={householdUsers}
-      showCreateButton={showCreateButton}
+      showCreateButton={showCreateButton && canEditEvents(session.user.role)}
       showUpcomingFilter={showUpcomingFilter}
       showFilters={showFilters}
       compact={compact}

@@ -4,10 +4,15 @@ import { and, asc, eq, gt, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { requireSession } from "@/lib/auth/authorization";
+import { canEditEvents, type UserRole } from "@/lib/auth/roles";
 import { withDatabaseLogging } from "@/lib/logging/logger";
 
+export function eventVisibility(role: UserRole) {
+  return canEditEvents(role) ? undefined : eq(events.hidden, false);
+}
+
 export async function getEventsInRange(from: Date, to: Date) {
-  await requireSession();
+  const session = await requireSession();
 
   return withDatabaseLogging(
     "events.list",
@@ -16,7 +21,13 @@ export async function getEventsInRange(from: Date, to: Date) {
       const matchingEvents = await db
         .select()
         .from(events)
-        .where(and(lt(events.startsAt, to), gt(events.endsAt, from)))
+        .where(
+          and(
+            lt(events.startsAt, to),
+            gt(events.endsAt, from),
+            eventVisibility(session.user.role),
+          ),
+        )
         .orderBy(asc(events.startsAt));
 
       if (matchingEvents.length === 0) {
@@ -36,7 +47,6 @@ export async function getEventsInRange(from: Date, to: Date) {
             eventId: eventAttendants.eventId,
             id: users.id,
             name: users.name,
-            avatarPath: users.avatarPath,
             createdAt: users.createdAt,
           })
           .from(eventAttendants)
@@ -65,10 +75,9 @@ export async function getEventsInRange(from: Date, to: Date) {
         icon: iconRows.find(({ id }) => id === event.iconId) ?? null,
         attendants: attendanceRows
           .filter(({ eventId }) => eventId === event.id)
-          .map(({ id, name, avatarPath, createdAt }) => ({
+          .map(({ id, name, createdAt }) => ({
             id,
             name,
-            avatarPath,
             createdAt,
           })),
       }));

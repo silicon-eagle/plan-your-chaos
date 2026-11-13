@@ -15,6 +15,10 @@ Plan Your Chaos uses password-plus-TOTP authentication managed entirely by an
 administrator. There is no self-service account recovery, password-reset email,
 or in-app registration.
 
+Sign in by typing a username. Names are case-insensitive (`Admin`, `ADMIN`,
+`AdMiN`, and `admin` all match), while their displayed spelling is preserved.
+Accounts cannot share the same name with different capitalisation.
+
 For a complete explanation of the login state machine, TOTP enrollment,
 sessions, route protection, Server Action authorization, and API
 authentication, see [`docs/authentication.md`](docs/authentication.md).
@@ -33,9 +37,25 @@ user must re-enroll.
 
 ### First rollout
 
-After deploying a fresh database, no user can log in — there are no temporary
-passwords yet. Issue one for each household member before announcing the
-deployment:
+Before the first deployment, set `INIT_ADMIN_PASSWORD` in `.env` to a strong,
+private initial password. The `migrate` service passes it to the seed process;
+Docker does not generate a password. Bootstrap fails explicitly if the first
+Admin account is needed and the password is missing.
+
+The seed creates one account named **Admin**, hashes the initial password, and
+requires a new password followed by authenticator enrollment on first login.
+After signing in, open **Admin** (`/admin`) to manage accounts and issue temporary
+passwords. The initial Admin password is never used to overwrite an existing
+account's credentials. Remove it from `.env` after successful bootstrap.
+
+Tim and Veerle are created as **User** accounts once by the role migration,
+without passwords. Recurring seed runs never reset account roles or recreate
+renamed/deleted accounts; they maintain the 21 event icon choices. A persistent
+bootstrap marker also prevents recreation of the initial Admin account. A
+pre-existing ordinary account named Admin must be renamed before bootstrap;
+it is never silently promoted.
+
+You can also issue a household member's password using the existing CLI:
 
 ```bash
 # Local development
@@ -50,8 +70,36 @@ The temporary password is printed once and never shown again. Share it with the
 user over a trusted channel and destroy your copy immediately.
 
 On first login the user must replace the temporary password and enroll TOTP.
-Existing users cannot log in until an administrator issues a temporary password
-for them.
+Existing household accounts keep their credentials during upgrade. Accounts
+without a password cannot log in until an administrator issues one.
+
+The case-insensitive username migration stops if existing account names differ
+only by case. Resolve those duplicates explicitly before retrying; the migration
+never merges or renames accounts.
+
+### Roles and account management
+
+| Role | Access |
+| ---- | ------ |
+| Admin | Manage accounts and all events, including hidden events. |
+| User | Create and edit events, including hidden events. |
+| Reader | Read non-hidden events only; no event or attendance changes. |
+
+Roles are fixed database rows, not editable labels. Session checks load the
+current database role, so changes apply on the next request without signing
+out. Only accounts with the **User** role can be selected as an event organiser.
+Owning an event never gives a Reader permission to edit it.
+
+The Admin page shows names, roles, and password/authenticator setup status.
+It can create User/Reader accounts, rename them, change between those roles,
+issue temporary passwords, reset authenticators, and delete accounts.
+Temporary passwords appear only in the action response and cannot be retrieved
+later. Deleting an account requires typing its current name and permanently
+deletes **all events it organises**, plus its attendance records.
+
+Admin accounts cannot be created, promoted, demoted, renamed, or deleted through
+these forms. Resetting the signed-in Admin's password or authenticator signs
+them out; save the displayed temporary password before signing in again.
 
 ### Admin commands
 
@@ -84,8 +132,9 @@ docker compose run --rm migrate \
   not already enrolled.
 - **reset-totp**: revokes all active sessions; the user must log in with their
   existing password, then re-enroll TOTP. The password is not changed.
-- There is no in-app recovery path. A user who loses their TOTP device must
-  contact an administrator who runs `reset-totp`.
+- There is no self-service recovery. A user who loses their TOTP device must
+  contact the administrator, who can reset it on `/admin` or use `reset-totp`.
+  The CLI remains available if the administrator is locked out.
 
 ### Session expiry
 
@@ -114,7 +163,8 @@ cp .env.example .env
 ```
 
 Before deployment, replace both example passwords in `.env` with strong,
-independent values. Generate a `TOTP_ENCRYPTION_KEY` with
+independent values, and set a private `INIT_ADMIN_PASSWORD` for first bootstrap.
+Generate a `TOTP_ENCRYPTION_KEY` with
 `openssl rand -base64 32` and set it in `.env`. You can also add `APP_PORT` to
 change the host port from its default of `3000`.
 
@@ -127,8 +177,8 @@ docker compose up --build -d
 This starts three services in order:
 
 1. `postgres` starts PostgreSQL and waits until it is healthy.
-2. `migrate` applies all Drizzle migrations and idempotently seeds the initial
-   users and event icons.
+2. `migrate` applies all Drizzle migrations, bootstraps the Admin once, and
+   idempotently seeds event icons.
 3. `app` starts the production Next.js standalone server after initialization
    succeeds.
 
@@ -155,6 +205,12 @@ intend to permanently delete the database.
 
 Application and database date-times use `Europe/Amsterdam`, including automatic
 CET and CEST daylight-saving transitions.
+
+For a local HTTP deployment, set `AUTH_COOKIE_SECURE=false` in `.env`.
+Compose passes this setting to the app so login and setup cookies work over HTTP.
+Use `AUTH_COOKIE_SECURE=true` for HTTPS deployments; Compose defaults to `true`
+when the setting is omitted. After changing it, recreate the app with
+`docker compose up --build -d`.
 
 For an internet-facing deployment, place a reverse proxy with HTTPS in front of
 the app, restrict access to the PostgreSQL host port, and keep `.env` out of

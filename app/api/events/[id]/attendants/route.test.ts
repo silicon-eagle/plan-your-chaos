@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PgDialect } from "drizzle-orm/pg-core";
+import type { SQL } from "drizzle-orm";
 
 const authMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -22,7 +24,7 @@ vi.mock("@/lib/auth/authorization", () => ({
           { status: 401 },
         );
       }
-      return handler(request, ...args);
+      return handler(request, ...args, session);
     },
 }));
 
@@ -30,7 +32,7 @@ import { GET, POST } from "./route";
 
 const baseSession = {
   id: 1,
-  user: { id: 1, name: "Alice", avatarPath: null },
+  user: { id: 1, name: "Alice", role: "User" },
   createdAt: new Date(),
   lastActiveAt: new Date(),
   idleExpiresAt: new Date(),
@@ -50,6 +52,25 @@ beforeEach(() => {
 });
 
 describe("GET /api/events/:id/attendants", () => {
+  it("does not reveal attendants of hidden events to Readers", async () => {
+    authMocks.getSession.mockResolvedValue({
+      ...baseSession, user: { ...baseSession.user, role: "Reader" },
+    });
+    const where = vi.fn<(condition: SQL | undefined) => unknown>().mockReturnValue({
+      limit: vi.fn().mockResolvedValue([]),
+    });
+    database.select.mockReturnValue({ from: vi.fn(() => ({ where })) });
+    const response = await GET(
+      new Request("http://localhost/api/events/1/attendants"),
+      { params: Promise.resolve({ id: "1" }) },
+    );
+    expect(response.status).toBe(404);
+    const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]!);
+    expect(query.sql).toContain('"events"."hidden"');
+    expect(query.params).toEqual([1, false]);
+    expect(database.select).toHaveBeenCalledOnce();
+  });
+
   it("returns 401 when not authenticated", async () => {
     authMocks.getSession.mockResolvedValue(null);
 

@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { events } from "@/db/schema";
 import { withApiAuthentication } from "@/lib/auth/authorization";
 import type { AuthenticatedSession } from "@/lib/auth/sessions";
+import { isEventOwner } from "@/lib/events/owners";
 import {
   logger,
   withDatabaseLogging,
@@ -50,10 +51,6 @@ async function updateEvent(
 
   const input = body as Record<string, unknown>;
 
-  if ("userId" in input) {
-    return errorResponse("userId cannot be changed");
-  }
-
   const [existingEvent] = await db
     .select()
     .from(events)
@@ -65,6 +62,20 @@ async function updateEvent(
   }
 
   const changes: Partial<typeof events.$inferInsert> = {};
+
+  if ("userId" in input) {
+    if (typeof input.userId !== "number" || !(await isEventOwner(input.userId))) {
+      return errorResponse("userId must reference an account with the User role");
+    }
+    changes.userId = input.userId;
+  }
+
+  if ("hidden" in input) {
+    if (typeof input.hidden !== "boolean") {
+      return errorResponse("hidden must be a boolean");
+    }
+    changes.hidden = input.hidden;
+  }
 
   if ("title" in input) {
     if (typeof input.title !== "string" || !input.title.trim()) {

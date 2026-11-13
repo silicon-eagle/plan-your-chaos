@@ -57,6 +57,20 @@
       "when": 1788045472951,
       "tag": "0007_massive_mysterio",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794529522048,
+      "tag": "0008_user_roles_admin",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794531014373,
+      "tag": "0009_case_insensitive_usernames",
+      "breakpoints": true
     }
   ]
 }

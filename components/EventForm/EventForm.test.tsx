@@ -10,6 +10,50 @@ const icons = [
 describe("EventForm", () => {
   const action = vi.fn();
 
+  it("preserves the current owner and hidden flag when editing", () => {
+    render(
+      <EventForm
+        action={action}
+        initialDate="2026-07-24"
+        users={[{ id: 1, name: "Tim", roleId: 2 }, { id: 2, name: "Veerle", roleId: 2 }]}
+        activeUserId={1}
+        icons={icons}
+        defaultIconId={1}
+        initialValues={{
+          title: "Dinner", startsAt: "2026-07-24T18:00", endsAt: "2026-07-24T19:00",
+          allDay: false, hidden: true, userId: 2, notes: "", attendantIds: [], iconId: 1,
+        }}
+      />,
+    );
+    expect(screen.getByRole("combobox", { name: "Organiser" })).toHaveValue("2");
+    expect(screen.getByRole("checkbox", { name: "Hidden from readers" })).toBeChecked();
+  });
+
+  it("offers only Users as organisers and includes hidden visibility", () => {
+    render(
+      <EventForm
+        action={action}
+        initialDate="2026-07-24"
+        users={[
+          { id: 1, name: "Tim", roleId: 2 },
+          { id: 2, name: "Veerle", roleId: 2 },
+          { id: 3, name: "Reader", roleId: 3 },
+          { id: 4, name: "Admin", roleId: 1 },
+        ]}
+        activeUserId={1}
+        icons={icons}
+        defaultIconId={1}
+      />,
+    );
+    const owner = screen.getByRole("combobox", { name: "Organiser" });
+    expect(owner).toHaveValue("1");
+    expect(screen.queryByRole("option", { name: "Reader" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Admin" })).not.toBeInTheDocument();
+    fireEvent.change(owner, { target: { value: "2" } });
+    expect(owner).toHaveValue("2");
+    expect(screen.getByRole("checkbox", { name: "Hidden from readers" })).not.toBeChecked();
+  });
+
   it("shows the default yellow icon and allows another icon to be selected", () => {
     const { container } = render(
       <EventForm
@@ -23,7 +67,7 @@ describe("EventForm", () => {
     );
 
     expect(screen.getByRole("img", { name: "Cat icon" })).toHaveAttribute(
-      "src",
+      "style",
       expect.stringContaining("/icons/yellow/cat-yellow.png"),
     );
 
@@ -33,7 +77,7 @@ describe("EventForm", () => {
     );
 
     expect(screen.getByRole("img", { name: "Star icon" })).toHaveAttribute(
-      "src",
+      "style",
       expect.stringContaining("/icons/yellow/star-yellow.png"),
     );
     expect(

@@ -2,7 +2,7 @@ import { asc } from "drizzle-orm";
 import { EventForm } from "@/components/EventForm/EventForm";
 import { db } from "@/db";
 import { icons, users } from "@/db/schema";
-import { requirePageSession } from "@/lib/auth/authorization";
+import { requirePageRole } from "@/lib/auth/authorization";
 import { formatDateKey, parseDateKey } from "@/lib/calendar/utils";
 import { chooseRandomIcon } from "@/lib/events/icons";
 import { createEvent } from "./actions";
@@ -18,13 +18,13 @@ export default async function NewEventPage({
   const { date } = await searchParams;
   const requestedDate = typeof date === "string" ? parseDateKey(date) : null;
   const initialDate = formatDateKey(requestedDate ?? new Date());
-  const session = await requirePageSession();
+  const session = await requirePageRole(["Admin", "User"]);
   const [householdUsers, eventIcons] = await Promise.all([
     db
       .select({
         id: users.id,
         name: users.name,
-        avatarPath: users.avatarPath,
+        roleId: users.roleId,
       })
       .from(users)
       .orderBy(asc(users.name)),

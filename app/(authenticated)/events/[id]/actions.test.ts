@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth/authorization", () => ({
-  requireSession: mocks.requireSession,
+  requireRole: mocks.requireSession,
 }));
 vi.mock("@/db", () => ({ db: { delete: mocks.delete } }));
 vi.mock("server-only", () => ({}));

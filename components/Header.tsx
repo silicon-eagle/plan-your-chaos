@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { logoutAction } from "@/app/login/actions";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
+import type { UserRole } from "@/lib/auth/roles";
 
 const navigationItems = [
   { href: "/", label: "Home" },
@@ -16,15 +17,18 @@ const navigationItems = [
 
 type HeaderProps = {
   activeUserName: string;
-  activeUserAvatarPath: string | null;
+  role: UserRole;
 };
 
 export function Header({
   activeUserName,
-  activeUserAvatarPath,
+  role,
 }: HeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const visibleNavigationItems = role === "Admin"
+    ? [...navigationItems, { href: "/admin", label: "Admin" }]
+    : navigationItems;
 
   useEffect(() => {
     if (!menuOpen) {
@@ -44,9 +48,10 @@ export function Header({
   function renderNavigation(className: string) {
     return (
       <nav className={className} aria-label="Main navigation">
-        {navigationItems.map(({ href, label }) => (
+        {visibleNavigationItems.map(({ href, label }) => (
           <PixelButton
             key={href}
+            className="header-button"
             href={href}
             selected={pathname === href}
             onClick={() => setMenuOpen(false)}
@@ -79,13 +84,14 @@ export function Header({
         <span className="active-user-display desktop-user">
           <UserAvatar
             name={activeUserName}
-            src={activeUserAvatarPath}
             decorative
           />
           {activeUserName}
         </span>
         <form action={logoutAction}>
-          <PixelButton type="submit">Logout</PixelButton>
+          <PixelButton type="submit" className="header-button">
+            Logout
+          </PixelButton>
         </form>
       </div>
 
@@ -93,7 +99,6 @@ export function Header({
         <span className="mobile-user-display">
           <UserAvatar
             name={activeUserName}
-            src={activeUserAvatarPath}
             decorative
           />
         </span>
@@ -138,7 +143,9 @@ export function Header({
           {renderNavigation("mobile-navigation")}
           <div className="mobile-logout">
             <form action={logoutAction}>
-              <PixelButton type="submit">Logout</PixelButton>
+              <PixelButton type="submit" className="header-button">
+                Logout
+              </PixelButton>
             </form>
           </div>
         </div>

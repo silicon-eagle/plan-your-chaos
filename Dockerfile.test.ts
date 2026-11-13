@@ -12,3 +12,13 @@ describe("Dockerfile database-tools stage", () => {
     expect(databaseToolsStage).toContain("COPY tsconfig.json ./");
   });
 });
+
+describe("Compose app environment", () => {
+  it("forwards the secure-cookie override to the runtime container", () => {
+    const compose = readFileSync(join(process.cwd(), "compose.yaml"), "utf8");
+    const appService = compose.match(/\n  app:\n[\s\S]*?(?=\nvolumes:)/)?.[0];
+    expect(appService).toContain(
+      "AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}",
+    );
+  });
+});

@@ -1,14 +1,17 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { getAuthCookieSecure } from "./config";
 import { CHALLENGE_COOKIE_NAME, SESSION_COOKIE_NAME } from "./constants";
 
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-};
+function getCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: getAuthCookieSecure(),
+    sameSite: "lax" as const,
+    path: "/",
+  };
+}
 
 export async function setSessionCookie(
   token: string,
@@ -16,7 +19,7 @@ export async function setSessionCookie(
 ): Promise<void> {
   const store = await cookies();
   store.set(SESSION_COOKIE_NAME, token, {
-    ...COOKIE_OPTIONS,
+    ...getCookieOptions(),
     expires: absoluteExpiresAt,
   });
 }
@@ -24,7 +27,7 @@ export async function setSessionCookie(
 export async function clearSessionCookie(): Promise<void> {
   const store = await cookies();
   store.set(SESSION_COOKIE_NAME, "", {
-    ...COOKIE_OPTIONS,
+    ...getCookieOptions(),
     expires: new Date(0),
   });
 }
@@ -40,7 +43,7 @@ export async function setChallengeCookie(
 ): Promise<void> {
   const store = await cookies();
   store.set(CHALLENGE_COOKIE_NAME, token, {
-    ...COOKIE_OPTIONS,
+    ...getCookieOptions(),
     expires: expiresAt,
   });
 }
@@ -48,7 +51,7 @@ export async function setChallengeCookie(
 export async function clearChallengeCookie(): Promise<void> {
   const store = await cookies();
   store.set(CHALLENGE_COOKIE_NAME, "", {
-    ...COOKIE_OPTIONS,
+    ...getCookieOptions(),
     expires: new Date(0),
   });
 }

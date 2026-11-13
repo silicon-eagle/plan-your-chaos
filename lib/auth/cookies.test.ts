@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   cookies: vi.fn(),
@@ -25,6 +25,43 @@ const cookieStore = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.cookies.mockResolvedValue(cookieStore);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe("secure cookie configuration", () => {
+  it.each([
+    ["production", "false", false],
+    ["development", "true", true],
+    ["production", undefined, true],
+    ["development", undefined, false],
+  ] as const)(
+    "uses NODE_ENV=%s / AUTH_COOKIE_SECURE=%s consistently",
+    async (environment, override, expectedSecure) => {
+      vi.stubEnv("NODE_ENV", environment);
+      vi.stubEnv("AUTH_COOKIE_SECURE", override);
+      vi.resetModules();
+      const authCookies = await import("./cookies");
+      const expiresAt = new Date("2026-12-01T00:00:00Z");
+
+      await authCookies.setSessionCookie("session", expiresAt);
+      await authCookies.setChallengeCookie("challenge", expiresAt);
+      await authCookies.clearSessionCookie();
+      await authCookies.clearChallengeCookie();
+
+      expect(cookieStore.set).toHaveBeenCalledTimes(4);
+      for (const [, , options] of cookieStore.set.mock.calls) {
+        expect(options).toMatchObject({
+          secure: expectedSecure,
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+        });
+      }
+    },
+  );
 });
 
 describe("setSessionCookie", () => {

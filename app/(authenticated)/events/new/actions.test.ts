@@ -15,7 +15,7 @@ vi.mock("@/db", () => ({
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/authorization", () => ({
-  requireSession: mocks.requireSession,
+  requireRole: mocks.requireSession,
 }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
@@ -24,7 +24,7 @@ import { createEvent } from "./actions";
 const initialCreateEventState = { error: null };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
 });
 
 describe("createEvent", () => {
@@ -62,6 +62,11 @@ describe("createEvent", () => {
     const where = vi.fn().mockResolvedValue([{ id: 2 }, { id: 3 }]);
     mocks.select
       .mockReturnValueOnce({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ id: 3 }]) })),
+        })),
+      })
+      .mockReturnValueOnce({
         from: vi.fn(() => ({ where })),
       })
       .mockReturnValueOnce({
@@ -84,6 +89,8 @@ describe("createEvent", () => {
     formData.set("startsAt", "2026-07-23T18:00");
     formData.set("endsAt", "2026-07-23T19:00");
     formData.set("notes", "Bring dessert");
+    formData.set("userId", "3");
+    formData.set("hidden", "on");
     formData.set("iconId", "5");
     formData.append("attendantIds", "2");
     formData.append("attendantIds", "3");
@@ -93,7 +100,8 @@ describe("createEvent", () => {
     expect(eventValues).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Dinner",
-        userId: 2,
+        userId: 3,
+        hidden: true,
         notes: "Bring dessert",
         iconId: 5,
       }),

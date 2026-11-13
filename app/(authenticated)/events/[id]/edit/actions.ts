@@ -4,9 +4,10 @@ import { eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
-import { requireSession } from "@/lib/auth/authorization";
+import { requireRole } from "@/lib/auth/authorization";
 import { parseEventFormData } from "@/lib/events/form-data";
 import { resolveEventIconId } from "@/lib/events/icons";
+import { isEventOwner } from "@/lib/events/owners";
 import {
   logger,
   withDatabaseLogging,
@@ -18,6 +19,7 @@ export async function updateEvent(
   _state: EventFormState,
   formData: FormData,
 ): Promise<EventFormState> {
+  await requireRole(["Admin", "User"]);
   const parsed = parseEventFormData(formData);
 
   if ("error" in parsed) {
@@ -33,12 +35,17 @@ export async function updateEvent(
     startsAt,
     endsAt,
     allDay,
+    hidden,
+    userId,
     notes,
     attendantIds,
     iconId: submittedIconId,
   } = parsed.data;
 
-  await requireSession();
+  if (!(await isEventOwner(userId))) {
+    logger.warn("event.update.rejected", { eventId, reason: "invalid_owner" });
+    return { error: "Select an organiser with the User role." };
+  }
 
   if (attendantIds.length > 0) {
     const selectedUsers = await db
@@ -77,6 +84,8 @@ export async function updateEvent(
             startsAt,
             endsAt,
             allDay,
+            hidden,
+            userId,
             notes,
             iconId,
             updatedAt: new Date(),
