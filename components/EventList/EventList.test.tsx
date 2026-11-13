@@ -30,6 +30,7 @@ describe("EventList", () => {
         ? { orderBy: async () => [{ id: 7, name: "Unused icon", fileName: "unused" }] }
         : { where: () => ({ orderBy: async () => [] }) },
     });
+
     render(await EventList({
       from: new Date("2026-07-01"), to: new Date("2026-08-01"),
       showIconFilter: true,
@@ -39,6 +40,31 @@ describe("EventList", () => {
     expect(option.querySelector("span")).toHaveAttribute(
       "style", expect.stringContaining("/icons/yellow/unused-yellow.png"),
     );
+  });
+
+  it("limits Reader icon filter choices with a server-side permission query", async () => {
+    mocks.requireSession.mockResolvedValue({ user: { id: 3, role: "Reader" } });
+    const where = vi.fn<(condition: SQL) => unknown>().mockReturnValue({
+      orderBy: async () => [],
+    });
+    mocks.select.mockReturnValue({
+      from: (table: unknown) => table === icons
+        ? { where }
+        : { where: () => ({ orderBy: async () => [] }) },
+    });
+
+    await EventList({
+      from: new Date("2026-07-01"),
+      to: new Date("2026-08-01"),
+      showIconFilter: true,
+    });
+
+    const queries = where.mock.calls.map(([condition]) =>
+      new PgDialect().sqlToQuery(condition)
+    );
+    expect(queries.some(({ sql }) =>
+      sql.includes('"reader_icon_permissions"."user_id"')
+    )).toBe(true);
   });
 
   it("excludes Admin from the attendant filter choices", async () => {

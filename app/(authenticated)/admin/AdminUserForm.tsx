@@ -1,8 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { EventIcon } from "@/components/EventIcon/EventIcon";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import type { ManagedUser } from "@/lib/auth/admin-service";
+import type { EventIcon as EventIconRecord } from "@/lib/events/icons";
 import { manageUserAction } from "./actions";
 import styles from "./admin.module.css";
 
@@ -18,11 +21,38 @@ function RoleOptions() {
 export function AdminUserForm({
   user,
   currentUserId,
+  icons = [],
 }: {
   user?: ManagedUser;
   currentUserId: number;
+  icons?: EventIconRecord[];
 }) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(manageUserAction, {});
+  const [selectedRole, setSelectedRole] = useState(user?.role ?? "User");
+  const [allIcons, setAllIcons] = useState(user?.readerAllIcons ?? true);
+  const [selectedIconIds, setSelectedIconIds] = useState(
+    user?.readerIconIds ?? [],
+  );
+  const changingToReader =
+    user !== undefined &&
+    user.role !== "Reader" &&
+    selectedRole === "Reader";
+  const effectiveAllIcons = changingToReader || allIcons;
+
+  useEffect(() => {
+    if (state.updatedUserId === user?.id) {
+      router.refresh();
+    }
+  }, [router, state, user?.id]);
+
+  function toggleIcon(iconId: number) {
+    setSelectedIconIds((current) =>
+      current.includes(iconId)
+        ? current.filter((id) => id !== iconId)
+        : [...current, iconId],
+    );
+  }
 
   return (
     <div className={styles.management}>
@@ -88,10 +118,73 @@ export function AdminUserForm({
                 </label>
                 <label className={styles.field}>
                   Role
-                  <select className={styles.input} name="role" defaultValue={user.role}>
+                  <select
+                    className={styles.input}
+                    name="role"
+                    value={selectedRole}
+                    onChange={(event) => {
+                      const role = event.target.value;
+                      if (role === "User" || role === "Reader") {
+                        setSelectedRole(role);
+                      }
+                    }}
+                  >
                     <RoleOptions />
                   </select>
                 </label>
+                {selectedRole === "Reader" && (
+                  <div
+                    className={styles.readerVisibility}
+                    role="group"
+                    aria-label="Reader event visibility"
+                  >
+                    <p className={styles.readerVisibilityHeading}>
+                      Reader event visibility
+                    </p>
+                    <input
+                      type="hidden"
+                      name="readerAllIcons"
+                      value={effectiveAllIcons ? "true" : "false"}
+                    />
+                    {changingToReader && (
+                      <p className={styles.warning}>
+                        Save as Reader before restricting icons.
+                      </p>
+                    )}
+                    <label className={styles.allIcons}>
+                      <input
+                        type="checkbox"
+                        checked={effectiveAllIcons}
+                        disabled={changingToReader}
+                        onChange={(event) => setAllIcons(event.target.checked)}
+                      />
+                      <span>All icons</span>
+                    </label>
+                    <div className={styles.iconGrid}>
+                      {icons.map((icon) => (
+                        <label className={styles.iconPermission} key={icon.id}>
+                          <input
+                            className={styles.iconPermissionInput}
+                            type="checkbox"
+                            name="readerIconIds"
+                            value={icon.id}
+                            aria-label={`${icon.name} icon permission`}
+                            checked={selectedIconIds.includes(icon.id)}
+                            disabled={effectiveAllIcons}
+                            onChange={() => toggleIcon(icon.id)}
+                          />
+                          <EventIcon
+                            fileName={icon.fileName}
+                            label={`${icon.name} icon`}
+                          />
+                          <span className={styles.visuallyHidden}>
+                            {icon.name} icon permission
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <PixelButton type="submit">Save account</PixelButton>
               </fieldset>
             </form>

@@ -50,7 +50,9 @@ describe("getEventsInRange", () => {
     const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]!);
     if (role === "Reader") {
       expect(query.sql).toContain('"events"."hidden"');
+      expect(query.sql).toContain('"reader_icon_permissions"."user_id"');
       expect(query.params).toContain(false);
+      expect(query.params).toContain(1);
     } else {
       expect(query.sql).not.toContain('"hidden"');
     }

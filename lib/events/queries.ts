@@ -4,14 +4,9 @@ import { and, asc, eq, gt, inArray, lt, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { requireSession } from "@/lib/auth/authorization";
-import { USER_ROLE_IDS, type UserRole } from "@/lib/auth/roles";
+import { USER_ROLE_IDS } from "@/lib/auth/roles";
 import { withDatabaseLogging } from "@/lib/logging/logger";
-
-export function eventVisibility(role: UserRole) {
-  return role === "Admin" || role === "User"
-    ? undefined
-    : eq(events.hidden, false);
-}
+import { eventVisibility } from "./visibility";
 
 export async function getEventsInRange(from: Date, to: Date) {
   const session = await requireSession();
@@ -27,7 +22,7 @@ export async function getEventsInRange(from: Date, to: Date) {
           and(
             lt(events.startsAt, to),
             gt(events.endsAt, from),
-            eventVisibility(session.user.role),
+            eventVisibility(session.user),
           ),
         )
         .orderBy(asc(events.startsAt));

@@ -30,4 +30,20 @@ describe("role and event schema", () => {
     expect(schema.events.hidden.default).toBe(false);
     expect(schema.events.hidden.notNull).toBe(true);
   });
+
+  it("stores explicit All-icons Reader access and normalized icon grants", () => {
+    expect(schema.users).toHaveProperty("readerAllIcons");
+    expect(schema.users.readerAllIcons.default).toBe(true);
+    expect(schema.users.readerAllIcons.notNull).toBe(true);
+
+    const permissions = getTableConfig(schema.readerIconPermissions);
+    expect(permissions.primaryKeys).toHaveLength(1);
+    expect(permissions.primaryKeys[0].columns.map(({ name }) => name))
+      .toEqual(["user_id", "icon_id"]);
+    expect(permissions.foreignKeys.map((key) => key.reference().foreignTable))
+      .toEqual(expect.arrayContaining([schema.users, schema.icons]));
+    expect(permissions.foreignKeys.every(
+      (key) => key.onDelete === "cascade",
+    )).toBe(true);
+  });
 });

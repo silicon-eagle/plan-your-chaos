@@ -18,6 +18,7 @@ export type AdminActionState = {
   temporaryPassword?: string;
   signedOut?: boolean;
   createdUserId?: number;
+  updatedUserId?: number;
 };
 
 export async function manageUserAction(
@@ -43,8 +44,11 @@ export async function manageUserAction(
         throw new AdminValidationError("Invalid user ID.");
       }
       if (operation === "update") {
-        await updateManagedUser(userId, field("name"), field("role"));
-        result = { message: "Account updated." };
+        await updateManagedUser(userId, field("name"), field("role"), {
+          allIcons: field("readerAllIcons") === "true",
+          iconIds: formData.getAll("readerIconIds").map(Number),
+        });
+        result = { message: "Account updated.", updatedUserId: userId };
       } else if (operation === "delete") {
         await deleteManagedUser(userId, field("confirmation"));
         revalidatePath(`/admin/${userId}`);

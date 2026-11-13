@@ -94,7 +94,9 @@ describe("EventPage", () => {
     for (const [condition] of adjacentWhere.mock.calls) {
       const query = new PgDialect().sqlToQuery(condition!);
       expect(query.sql).toContain('"events"."hidden"');
+      expect(query.sql).toContain('"reader_icon_permissions"."user_id"');
       expect(query.params).toContain(false);
+      expect(query.params).toContain(3);
     }
     mocks.select.mockClear();
   });
@@ -115,7 +117,10 @@ describe("EventPage", () => {
     await expect(EventPage({ params: Promise.resolve({ id: "12" }) })).rejects.toThrow("NEXT_NOT_FOUND");
     const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]!);
     expect(query.sql).toContain('"events"."hidden"');
-    expect(query.params).toEqual([12, false]);
+    expect(query.sql).toContain('"reader_icon_permissions"."user_id"');
+    expect(query.params).toContain(12);
+    expect(query.params).toContain(false);
+    expect(query.params).toContain(3);
     expect(mocks.select).toHaveBeenCalledOnce();
     mocks.select.mockClear();
   });

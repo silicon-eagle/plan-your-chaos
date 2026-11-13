@@ -5,15 +5,18 @@ const mocks = vi.hoisted(() => ({
   requirePageRole: vi.fn(),
   listManagedUsers: vi.fn(),
   getManagedUser: vi.fn(),
+  select: vi.fn(),
 }));
 vi.mock("@/lib/auth/authorization", () => ({ requirePageRole: mocks.requirePageRole }));
 vi.mock("@/lib/auth/admin-service", () => ({
   listManagedUsers: mocks.listManagedUsers,
   getManagedUser: mocks.getManagedUser,
 }));
+vi.mock("@/db", () => ({ db: { select: mocks.select } }));
 vi.mock("./actions", () => ({ manageUserAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
   notFound: () => { throw new Error("NEXT_NOT_FOUND"); },
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 import AdminPage from "./page";
@@ -21,8 +24,9 @@ import AdminUserPage from "./[id]/page";
 import NewAdminUserPage from "./new/page";
 
 const user = {
-  id: 2, name: "Tim", role: "User", hasPassword: true,
-  mustSetPassword: false, hasTotp: true,
+  id: 2, name: "Tim", role: "Reader", hasPassword: true,
+  mustSetPassword: false, hasTotp: true, readerAllIcons: false,
+  readerIconIds: [4],
 };
 
 beforeEach(() => {
@@ -30,6 +34,13 @@ beforeEach(() => {
   mocks.requirePageRole.mockResolvedValue({ user: { id: 1, role: "Admin" } });
   mocks.listManagedUsers.mockResolvedValue([user]);
   mocks.getManagedUser.mockResolvedValue(user);
+  mocks.select.mockReturnValue({
+    from: () => ({
+      orderBy: async () => [
+        { id: 4, name: "Music", fileName: "music" },
+      ],
+    }),
+  });
 });
 
 describe("admin page", () => {
@@ -63,6 +74,7 @@ describe("admin page", () => {
     expect(mocks.listManagedUsers).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "Tim" })).toBeInTheDocument();
     expect(screen.getByRole("form", { name: "Edit Tim" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Music icon" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to users" })).toHaveAttribute("href", "/admin");
   });
 
