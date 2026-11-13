@@ -11,6 +11,40 @@ function form() {
 }
 
 describe("event ownership and visibility form data", () => {
+  it("normalizes all-day times before checking the event duration", () => {
+    const data = form();
+    data.set("allDay", "on");
+    data.set("startsAt", "2026-11-13T19:00");
+    data.set("endsAt", "2026-11-13T18:00");
+    expect(parseEventFormData(data)).toMatchObject({
+      data: {
+        allDay: true,
+        startsAt: new Date("2026-11-13T00:00"),
+        endsAt: new Date("2026-11-13T23:59"),
+      },
+    });
+  });
+
+  it("preserves all-day start and end dates across a clock change", () => {
+    const data = form();
+    data.set("allDay", "on");
+    data.set("startsAt", "2026-10-24T19:00");
+    data.set("endsAt", "2026-10-26T18:00");
+    expect(parseEventFormData(data)).toMatchObject({
+      data: {
+        startsAt: new Date("2026-10-24T00:00"),
+        endsAt: new Date("2026-10-26T23:59"),
+      },
+    });
+  });
+
+  it("still rejects reversed dates for all-day events", () => {
+    const data = form();
+    data.set("allDay", "on");
+    data.set("startsAt", "2026-11-14T00:00");
+    expect(parseEventFormData(data)).toHaveProperty("error");
+  });
+
   it("parses the selected owner and hidden checkbox", () => {
     const data = form();
     data.set("hidden", "on");

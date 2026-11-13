@@ -3,6 +3,19 @@ import { describe, expect, it } from "vitest";
 import { DayNavigation } from "./DayNavigation";
 
 describe("DayNavigation", () => {
+  it.each([false, true])("returns to the viewed day's calendar month (can edit: %s)", (canEdit) => {
+    render(
+      <DayNavigation
+        date={new Date(2026, 6, 31)}
+        currentDate={new Date(2026, 10, 13)}
+        canEdit={canEdit}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute(
+      "href", "/?date=2026-07-31",
+    );
+  });
+
   it("omits event creation for readers", () => {
     render(<DayNavigation date={new Date(2026, 6, 24)} canEdit={false} />);
     expect(screen.queryByRole("link", { name: "Create event" })).not.toBeInTheDocument();
@@ -49,6 +62,7 @@ describe("DayNavigation", () => {
       ["Current day", "currentBtn"],
       ["Create event", "newBtn"],
       ["Next day", "nextBtn"],
+      ["Calendar", "calendarBtn"],
     ] as const;
 
     expectedSprites.forEach(([label, image]) => {

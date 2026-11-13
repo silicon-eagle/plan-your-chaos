@@ -25,6 +25,7 @@ export function parseEventFormData(
   const title = getString(formData, "title");
   const startsAt = new Date(getString(formData, "startsAt"));
   const endsAt = new Date(getString(formData, "endsAt"));
+  const allDay = formData.get("allDay") === "on";
   const notes = getString(formData, "notes") || null;
   const userId = Number(getString(formData, "userId"));
   const attendantIds = formData
@@ -42,6 +43,11 @@ export function parseEventFormData(
     };
   }
 
+  if (allDay) {
+    startsAt.setHours(0, 0, 0, 0);
+    endsAt.setHours(23, 59, 0, 0);
+  }
+
   if (startsAt >= endsAt) {
     return { error: "The event must end after it starts." };
   }
@@ -55,7 +61,7 @@ export function parseEventFormData(
       title,
       startsAt,
       endsAt,
-      allDay: formData.get("allDay") === "on",
+      allDay,
       hidden: formData.get("hidden") === "on",
       userId,
       notes,

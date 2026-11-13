@@ -32,8 +32,13 @@ type EventListClientProps = {
     id: number;
     name: string;
   }[];
+  icons?: {
+    id: number;
+    name: string;
+  }[];
   showCreateButton?: boolean;
   showUpcomingFilter?: boolean;
+  showIconFilter?: boolean;
   showFilters?: boolean;
   compact?: boolean;
   showHeader?: boolean;
@@ -96,15 +101,18 @@ export function getEventStatus(event: EventListItem, now: Date): string {
 export function EventListClient({
   events,
   users,
+  icons = [],
   showCreateButton = false,
   showUpcomingFilter = false,
+  showIconFilter = false,
   showFilters = true,
   compact = false,
   showHeader = false,
   fillHeight = false,
   currentTime = new Date().toISOString(),
 }: EventListClientProps) {
-  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedIconId, setSelectedIconId] = useState("");
   const [upcomingOnly, setUpcomingOnly] = useState(showUpcomingFilter);
   const [now, setNow] = useState(() => new Date(currentTime));
 
@@ -113,27 +121,15 @@ export function EventListClient({
     return () => window.clearInterval(interval);
   }, []);
 
-  const userFilteredEvents =
-    selectedUserIds.length === 0
-      ? events
-      : events.filter((event) =>
-          event.attendants.some((attendant) =>
-            selectedUserIds.includes(attendant.id),
-          ),
-        );
-  const filteredEvents = upcomingOnly
-    ? userFilteredEvents.filter(
-        (event) => new Date(event.endsAt) > now,
-      )
-    : userFilteredEvents;
-
-  function toggleUser(userId: number) {
-    setSelectedUserIds((selectedIds) =>
-      selectedIds.includes(userId)
-        ? selectedIds.filter((id) => id !== userId)
-        : [...selectedIds, userId],
-    );
-  }
+  const filteredEvents = events.filter(
+    (event) =>
+      (selectedUserId === "" ||
+        event.attendants.some(
+          (attendant) => String(attendant.id) === selectedUserId,
+        )) &&
+      (selectedIconId === "" || String(event.icon?.id) === selectedIconId) &&
+      (!upcomingOnly || new Date(event.endsAt) > now),
+  );
 
   return (
     <section
@@ -163,18 +159,36 @@ export function EventListClient({
         <div className={styles.filterRow}>
           {showFilters && (
             <fieldset className={styles.filters}>
-              <legend>Filter by attendee</legend>
+              <legend>Filter events</legend>
               <div className={styles.filterOptions}>
-                {users.map((user) => (
-                  <label key={user.id}>
-                    <input
-                      type="checkbox"
-                      checked={selectedUserIds.includes(user.id)}
-                      onChange={() => toggleUser(user.id)}
-                    />
-                    <span>{user.name}</span>
+                <label className={styles.dropdownFilter}>
+                  <span>Attendee</span>
+                  <select
+                    className={styles.filterSelect}
+                    value={selectedUserId}
+                    onChange={(event) => setSelectedUserId(event.target.value)}
+                  >
+                    <option value="">All</option>
+                    {users.map((user) => (
+                      <option value={user.id} key={user.id}>{user.name}</option>
+                    ))}
+                  </select>
+                </label>
+                {showIconFilter && (
+                  <label className={styles.dropdownFilter}>
+                    <span>Event icon</span>
+                    <select
+                      className={styles.filterSelect}
+                      value={selectedIconId}
+                      onChange={(event) => setSelectedIconId(event.target.value)}
+                    >
+                      <option value="">All</option>
+                      {icons.map((icon) => (
+                        <option value={icon.id} key={icon.id}>{icon.name}</option>
+                      ))}
+                    </select>
                   </label>
-                ))}
+                )}
                 {showUpcomingFilter && (
                   <label>
                     <input
@@ -200,15 +214,23 @@ export function EventListClient({
             {filteredEvents.map((event, index) => {
               const colour = index % 2 === 0 ? "yellow" : "purple";
               const startsAt = new Date(event.startsAt);
+              const endsAt = new Date(event.endsAt);
               const status = getEventStatus(event, now);
+              const isActive = status === "Ongoing";
 
               return (
                 <li
-                  className={`${styles.item} ${styles[colour]}`}
+                  className={[
+                    styles.item,
+                    styles[colour],
+                    isActive && styles.active,
+                  ].filter(Boolean).join(" ")}
                   key={event.id}
                 >
                   <Link href={`/events/${event.id}`}>
-                    <span className={styles.stripe} aria-hidden="true" />
+                    {!isActive && (
+                      <span className={styles.stripe} aria-hidden="true" />
+                    )}
 
                     <span className={styles.iconFrame}>
                       {event.icon && (
@@ -223,7 +245,10 @@ export function EventListClient({
 
                     <span className={styles.eventDetails}>
                       <time dateTime={event.startsAt}>
-                        {formatEventDate(startsAt).toUpperCase()} | {status}
+                        {formatEventDate(startsAt).toUpperCase()}
+                        {daysDiff(startsAt, endsAt) !== 0 &&
+                          ` - ${formatEventDate(endsAt).toUpperCase()}`}
+                        {" | "}{status}
                       </time>
                       <strong>{event.title}</strong>
                       <span>{getTimeLabel(event)}</span>

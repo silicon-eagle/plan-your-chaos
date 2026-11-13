@@ -37,6 +37,11 @@ export function DayNavigation({
       label: "Next day",
       image: "nextBtn",
     },
+    {
+      href: `/?date=${dateKey}`,
+      label: "Calendar",
+      image: "calendarBtn",
+    },
   ] as const;
 
   return (

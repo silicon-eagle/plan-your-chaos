@@ -8,6 +8,7 @@ import { parsePositiveInteger } from "@/app/api/events/validation";
 import { requirePageSession } from "@/lib/auth/authorization";
 import { canEditEvents, USER_ROLE_IDS, type UserRole } from "@/lib/auth/roles";
 import { eventVisibility } from "@/lib/events/queries";
+import { daysDiff, getDateLabel } from "@/lib/calendar/utils";
 import { EventActions } from "./EventActions";
 import styles from "../events.module.css";
 
@@ -19,6 +20,13 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Amsterdam",
   dateStyle: "full",
   timeStyle: "short",
+});
+
+const calendarDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Amsterdam",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
 });
 
 async function getNextEvent(eventId: number, startsAt: Date, role: UserRole) {
@@ -117,20 +125,36 @@ export default async function EventPage({ params }: EventPageProps) {
       >
         <EventActions
           eventId={event.id}
+          calendarDate={calendarDateFormatter.format(event.startsAt)}
           previousEventId={previousEventId}
           nextEventId={nextEventId}
           canEdit={canEditEvents(session.user.role)}
         />
-        <div className={styles.eventHeading}>
-          {event.iconFileName && (
-            <EventIcon
-              className={styles.eventIcon}
-              fileName={event.iconFileName}
-              label={event.iconName ? `${event.iconName} icon` : undefined}
-            />
-          )}
-          <h1 id="event-heading">{event.title}</h1>
-        </div>
+        <header>
+          <div className={styles.eventHeading}>
+            {event.iconFileName && (
+              <EventIcon
+                className={styles.eventIcon}
+                fileName={event.iconFileName}
+                label={event.iconName ? `${event.iconName} icon` : undefined}
+              />
+            )}
+            <h1 id="event-heading">{event.title}</h1>
+          </div>
+          <p>
+            <time dateTime={event.startsAt.toISOString()}>
+              {getDateLabel(event.startsAt)}
+            </time>
+            {daysDiff(event.startsAt, event.endsAt) !== 0 && (
+              <>
+                {" - "}
+                <time dateTime={event.endsAt.toISOString()}>
+                  {getDateLabel(event.endsAt)}
+                </time>
+              </>
+            )}
+          </p>
+        </header>
 
         <dl className={styles.details}>
           <div>

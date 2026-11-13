@@ -8,7 +8,7 @@ vi.mock("./actions", () => ({
 
 describe("EventActions", () => {
   it("keeps navigation but hides editing and deletion for readers", () => {
-    render(<EventActions eventId={12} previousEventId={11} nextEventId={13} canEdit={false} />);
+    render(<EventActions eventId={12} calendarDate="2026-07-24" previousEventId={11} nextEventId={13} canEdit={false} />);
     expect(screen.getByRole("link", { name: "Next event" })).toHaveAttribute("href", "/events/13");
     expect(screen.queryByRole("link", { name: "Edit event" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete event" })).not.toBeInTheDocument();
@@ -18,6 +18,7 @@ describe("EventActions", () => {
     render(
       <EventActions
         eventId={12}
+        calendarDate="2026-07-24"
         canEdit
         previousEventId={11}
         nextEventId={13}
@@ -37,7 +38,7 @@ describe("EventActions", () => {
     expect(previousLink).toHaveAttribute("href", "/events/11");
     expect(editLink).toHaveAttribute("href", "/events/12/edit");
     expect(nextLink).toHaveAttribute("href", "/events/13");
-    expect(calendarLink).toHaveAttribute("href", "/");
+    expect(calendarLink).toHaveAttribute("href", "/?date=2026-07-24");
     expect(editLink.querySelectorAll("img")[0]).toHaveAttribute(
       "src",
       expect.stringContaining("editBtn.png"),
@@ -52,6 +53,7 @@ describe("EventActions", () => {
     render(
       <EventActions
         eventId={12}
+        calendarDate="2026-07-24"
         canEdit
         previousEventId={null}
         nextEventId={null}
@@ -70,6 +72,7 @@ describe("EventActions", () => {
     render(
       <EventActions
         eventId={12}
+        calendarDate="2026-07-24"
         canEdit
         previousEventId={11}
         nextEventId={13}
