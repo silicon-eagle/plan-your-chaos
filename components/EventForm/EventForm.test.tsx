@@ -168,6 +168,9 @@ describe("EventForm", () => {
     expect(
       container.querySelector('input[name="iconId"]'),
     ).toHaveValue("2");
+    expect(screen.getByRole("button", { name: "Select icon" })).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Select Cat icon" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select all event icons" })).not.toBeInTheDocument();
   });
 
   it("keeps the native date-time inputs without extra buttons", () => {
@@ -195,6 +198,22 @@ describe("EventForm", () => {
         name: /choose .* date and time/i,
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps the inline form picker open when another field is clicked", () => {
+    render(
+      <EventForm
+        action={action}
+        initialDate="2026-07-24"
+        users={[]}
+        activeUserId={1}
+        icons={icons}
+        defaultIconId={1}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Select icon" }));
+    fireEvent.pointerDown(screen.getByLabelText("Title"));
+    expect(screen.getByRole("button", { name: "Select Cat icon" })).toBeInTheDocument();
   });
 
   it("moves the end time to one hour after the selected start time", () => {

@@ -24,6 +24,8 @@
 }
 
 .filters {
+  --filter-control-height: 3rem;
+
   flex: 1;
   min-width: 0;
   margin: 0;
@@ -50,15 +52,18 @@
   cursor: pointer;
 }
 
-.filterOptions .dropdownFilter {
+.filterOptions .filterControl {
   display: grid;
   flex: 1 1 10rem;
   min-width: 0;
+  color: var(--highlight);
+  line-height: 1.25;
 }
 
 .filterSelect {
   width: 100%;
   min-width: 0;
+  height: var(--filter-control-height);
   min-height: 2.75rem;
   border: 4px solid var(--primary);
   border-radius: 0;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { EventIcon } from "@/components/EventIcon/EventIcon";
+import { EventIconPicker } from "@/components/EventIconPicker/EventIconPicker";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import type { EventIcon as EventIconData } from "@/lib/events/icons";
@@ -121,7 +121,6 @@ export function EventForm({
   const [selectedIconId, setSelectedIconId] = useState(
     initialValues?.iconId ?? defaultIconId,
   );
-  const [isIconGridOpen, setIsIconGridOpen] = useState(false);
   const [allDay, setAllDay] = useState(initialValues?.allDay ?? false);
   const [startsAt, setStartsAt] = useState(
     initialValues?.startsAt ?? `${initialDate}T09:00`,
@@ -167,58 +166,13 @@ export function EventForm({
         </select>
       </label>
 
-      <div className={styles.iconPicker}>
-        <span className={styles.label}>Icon</span>
-        <div className={styles.iconPickerControls}>
-          <EventIcon
-            className={styles.eventIcon}
-            fileName={selectedIcon.fileName}
-            label={`${selectedIcon.name} icon`}
-          />
-          <PixelButton
-            className={styles.iconSelectButton}
-            type="button"
-            aria-expanded={isIconGridOpen}
-            aria-controls="event-icon-grid"
-            onClick={() => setIsIconGridOpen((isOpen) => !isOpen)}
-          >
-            Select icon
-          </PixelButton>
-        </div>
-        <input
-          type="hidden"
-          name="iconId"
-          value={selectedIcon.id}
-          readOnly
-        />
-
-        {isIconGridOpen && (
-          <div
-            className={styles.iconGrid}
-            id="event-icon-grid"
-            aria-label="Event icons"
-          >
-            {icons.map((icon) => (
-              <button
-                className={styles.iconOption}
-                type="button"
-                aria-label={`Select ${icon.name} icon`}
-                aria-pressed={icon.id === selectedIcon.id}
-                onClick={() => {
-                  setSelectedIconId(icon.id);
-                  setIsIconGridOpen(false);
-                }}
-                key={icon.id}
-              >
-                <EventIcon
-                  className={styles.eventIcon}
-                  fileName={icon.fileName}
-                />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <EventIconPicker
+        id="event-icon"
+        icons={icons}
+        selectedIconId={selectedIcon.id}
+        onSelect={setSelectedIconId}
+      />
+      <input type="hidden" name="iconId" value={selectedIcon.id} readOnly />
 
       <DateTimeField
         id="event-start"

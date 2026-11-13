@@ -171,19 +171,23 @@ describe("EventListClient", () => {
           { ...events[0], id: 4, title: "No icon", icon: null, startsAt: events[1].startsAt, endsAt: events[1].endsAt },
         ]}
         users={[{ id: 1, name: "Tim" }, { id: 2, name: "Veerle" }]}
-        icons={[{ id: 1, name: "Cat" }, { id: 2, name: "Music" }, { id: 3, name: "Star" }]}
+        icons={[
+          { id: 1, name: "Cat", fileName: "cat" },
+          { id: 2, name: "Music", fileName: "music" },
+          { id: 3, name: "Star", fileName: "star" },
+        ]}
         showIconFilter
         showUpcomingFilter
         currentTime="2026-07-24T20:00:00Z"
       />,
     );
-    const iconFilter = screen.getByRole("combobox", { name: "Event icon" });
     const attendeeFilter = screen.getByRole("combobox", { name: "Attendee" });
-    expect(within(iconFilter).getAllByRole("option").map((option) => option.textContent)).toEqual([
-      "All", "Cat", "Music", "Star",
-    ]);
+    function selectIcon(name: string) {
+      fireEvent.click(screen.getByRole("button", { name: "Select icon" }));
+      fireEvent.click(screen.getByRole("button", { name }));
+    }
 
-    fireEvent.change(iconFilter, { target: { value: "1" } });
+    selectIcon("Select Cat icon");
     expect(screen.getByText("Cat meetup")).toBeInTheDocument();
     expect(screen.queryByText("Dinner")).not.toBeInTheDocument();
     expect(screen.queryByText("Concert")).not.toBeInTheDocument();
@@ -198,16 +202,87 @@ describe("EventListClient", () => {
     fireEvent.change(attendeeFilter, { target: { value: "" } });
     expect(screen.getByText("Dinner")).toBeInTheDocument();
     expect(screen.getByText("Cat meetup")).toBeInTheDocument();
-    fireEvent.change(iconFilter, { target: { value: "3" } });
+    selectIcon("Select Star icon");
     expect(screen.getByText("No matching events.")).toBeInTheDocument();
-    fireEvent.change(iconFilter, { target: { value: "" } });
+    selectIcon("Select all event icons");
     expect(screen.getByText("No icon")).toBeInTheDocument();
     expect(screen.getByText("Concert")).toBeInTheDocument();
   });
 
-  it("does not show an icon dropdown on other event lists", () => {
-    render(<EventListClient events={events} users={[]} />);
+  it("uses the All sprite and actual event sprites with only one selected icon", () => {
+    render(
+      <EventListClient
+        events={events}
+        users={[]}
+        icons={[
+          { id: 1, name: "Cat", fileName: "cat" },
+          { id: 2, name: "Music", fileName: "music" },
+        ]}
+        showIconFilter
+      />,
+    );
     expect(screen.queryByRole("combobox", { name: "Event icon" })).not.toBeInTheDocument();
+    const picker = within(screen.getByRole("group", { name: "Event icon" }));
+    const trigger = picker.getByRole("button", { name: "Select icon" });
+    expect(picker.getByRole("img", { name: "All event icons" })).toHaveAttribute("src", "/icons/All.png");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(trigger);
+    const all = picker.getByRole("button", { name: "Select all event icons" });
+    const cat = picker.getByRole("button", { name: "Select Cat icon" });
+    expect(all).toHaveAttribute("aria-pressed", "true");
+    expect(all.querySelector("img")).toHaveAttribute("src", "/icons/All.png");
+    expect(cat.querySelector("span")).toHaveAttribute("style", expect.stringContaining("/icons/yellow/cat-yellow.png"));
+
+    fireEvent.click(cat);
+    expect(picker.getByRole("img", { name: "Cat icon" })).toBeInTheDocument();
+    expect(screen.getByText("Dinner")).toBeInTheDocument();
+    expect(screen.queryByText("Concert")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(picker.queryByRole("button", { name: "Select Music icon" })).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    expect(picker.getByRole("button", { name: "Select Cat icon" })).toHaveAttribute("aria-pressed", "true");
+    expect(picker.getByRole("button", { name: "Select all event icons" })).toHaveAttribute("aria-pressed", "false");
+    expect(picker.getByRole("button", { name: "Select Music icon" })).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(picker.getByRole("button", { name: "Select Music icon" }));
+    expect(screen.queryByText("Dinner")).not.toBeInTheDocument();
+    expect(screen.getByText("Concert")).toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    fireEvent.click(picker.getByRole("button", { name: "Select all event icons" }));
+    expect(picker.getByRole("img", { name: "All event icons" })).toBeInTheDocument();
+    expect(screen.getByText("Dinner")).toBeInTheDocument();
+    expect(screen.getByText("Concert")).toBeInTheDocument();
+  });
+
+  it("does not show an icon picker on other event lists", () => {
+    render(<EventListClient events={events} users={[]} />);
+    expect(screen.queryByRole("button", { name: "Select icon" })).not.toBeInTheDocument();
+  });
+
+  it("dismisses the floating picker with Escape or an outside click, but not an inside click", () => {
+    render(
+      <EventListClient
+        events={events}
+        users={[]}
+        icons={[{ id: 1, name: "Cat", fileName: "cat" }]}
+        showIconFilter
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Select icon" });
+    fireEvent.click(trigger);
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Select Cat icon" }));
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(trigger).toHaveFocus();
+
+    fireEvent.click(trigger);
+    fireEvent.pointerDown(screen.getByRole("combobox", { name: "Attendee" }));
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Select Cat icon" })).not.toBeInTheDocument();
   });
 
   it("shows only upcoming events by default when the filter is enabled", () => {

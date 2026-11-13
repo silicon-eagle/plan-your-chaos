@@ -59,6 +59,7 @@ export async function EventList({
           .select({
             id: icons.id,
             name: icons.name,
+            fileName: icons.fileName,
           })
           .from(icons)
           .orderBy(asc(icons.name))

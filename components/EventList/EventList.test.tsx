@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { PgDialect } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
 import { icons } from "@/db/schema";
@@ -27,15 +27,18 @@ describe("EventList", () => {
     mocks.requireSession.mockResolvedValue({ user: { id: 2, role: "User" } });
     mocks.select.mockReturnValue({
       from: (table: unknown) => table === icons
-        ? { orderBy: async () => [{ id: 7, name: "Unused icon" }] }
+        ? { orderBy: async () => [{ id: 7, name: "Unused icon", fileName: "unused" }] }
         : { where: () => ({ orderBy: async () => [] }) },
     });
     render(await EventList({
       from: new Date("2026-07-01"), to: new Date("2026-08-01"),
       showIconFilter: true,
     }));
-    expect(screen.getByRole("combobox", { name: "Event icon" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Unused icon" })).toHaveValue("7");
+    fireEvent.click(screen.getByRole("button", { name: "Select icon" }));
+    const option = screen.getByRole("button", { name: "Select Unused icon icon" });
+    expect(option.querySelector("span")).toHaveAttribute(
+      "style", expect.stringContaining("/icons/yellow/unused-yellow.png"),
+    );
   });
 
   it("excludes Admin from the attendant filter choices", async () => {

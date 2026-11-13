@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { CalendarNewButton } from "@/components/Calendar/CalendarNewButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import { EventIcon } from "@/components/EventIcon/EventIcon";
+import { EventIconPicker } from "@/components/EventIconPicker/EventIconPicker";
+import type { EventIcon as EventIconData } from "@/lib/events/icons";
 import { daysDiff } from "@/lib/calendar/utils";
 import styles from "./EventList.module.css";
 
@@ -32,10 +34,7 @@ type EventListClientProps = {
     id: number;
     name: string;
   }[];
-  icons?: {
-    id: number;
-    name: string;
-  }[];
+  icons?: EventIconData[];
   showCreateButton?: boolean;
   showUpcomingFilter?: boolean;
   showIconFilter?: boolean;
@@ -112,7 +111,7 @@ export function EventListClient({
   currentTime = new Date().toISOString(),
 }: EventListClientProps) {
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [selectedIconId, setSelectedIconId] = useState("");
+  const [selectedIconId, setSelectedIconId] = useState<number | null>(null);
   const [upcomingOnly, setUpcomingOnly] = useState(showUpcomingFilter);
   const [now, setNow] = useState(() => new Date(currentTime));
 
@@ -127,7 +126,7 @@ export function EventListClient({
         event.attendants.some(
           (attendant) => String(attendant.id) === selectedUserId,
         )) &&
-      (selectedIconId === "" || String(event.icon?.id) === selectedIconId) &&
+      (selectedIconId === null || event.icon?.id === selectedIconId) &&
       (!upcomingOnly || new Date(event.endsAt) > now),
   );
 
@@ -161,7 +160,7 @@ export function EventListClient({
             <fieldset className={styles.filters}>
               <legend>Filter events</legend>
               <div className={styles.filterOptions}>
-                <label className={styles.dropdownFilter}>
+                <label className={styles.filterControl}>
                   <span>Attendee</span>
                   <select
                     className={styles.filterSelect}
@@ -175,19 +174,17 @@ export function EventListClient({
                   </select>
                 </label>
                 {showIconFilter && (
-                  <label className={styles.dropdownFilter}>
-                    <span>Event icon</span>
-                    <select
-                      className={styles.filterSelect}
-                      value={selectedIconId}
-                      onChange={(event) => setSelectedIconId(event.target.value)}
-                    >
-                      <option value="">All</option>
-                      {icons.map((icon) => (
-                        <option value={icon.id} key={icon.id}>{icon.name}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className={styles.filterControl}>
+                    <EventIconPicker
+                      id="event-icon-filter"
+                      label="Event icon"
+                      icons={icons}
+                      allowAll
+                      floating
+                      selectedIconId={selectedIconId}
+                      onSelect={setSelectedIconId}
+                    />
+                  </div>
                 )}
                 {showUpcomingFilter && (
                   <label>
