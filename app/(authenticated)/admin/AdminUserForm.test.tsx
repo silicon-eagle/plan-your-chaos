@@ -2,15 +2,25 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ManagedUser } from "@/lib/auth/admin-service";
 
-const mocks = vi.hoisted(() => ({ manageUserAction: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  manageUserAction: vi.fn(),
+  refresh: vi.fn(),
+}));
 vi.mock("./actions", () => ({ manageUserAction: mocks.manageUserAction }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: mocks.refresh }),
+}));
 
 import { AdminUserForm } from "./AdminUserForm";
 
 const users: ManagedUser[] = [
-  { id: 1, name: "Admin", role: "Admin", hasPassword: true, mustSetPassword: false, hasTotp: true },
-  { id: 2, name: "Tim", role: "User", hasPassword: false, mustSetPassword: false, hasTotp: false },
-  { id: 3, name: "Visitor", role: "Reader", hasPassword: true, mustSetPassword: true, hasTotp: false },
+  { id: 1, name: "Admin", role: "Admin", hasPassword: true, mustSetPassword: false, hasTotp: true, readerAllIcons: true, readerIconIds: [] },
+  { id: 2, name: "Tim", role: "User", hasPassword: false, mustSetPassword: false, hasTotp: false, readerAllIcons: true, readerIconIds: [] },
+  { id: 3, name: "Visitor", role: "Reader", hasPassword: true, mustSetPassword: true, hasTotp: false, readerAllIcons: false, readerIconIds: [4] },
+];
+const icons = [
+  { id: 4, name: "Music", fileName: "music" },
+  { id: 7, name: "Christmas", fileName: "christmas" },
 ];
 
 beforeEach(() => {
@@ -77,5 +87,94 @@ describe("admin account management", () => {
     expect(await screen.findByText("admin-secret")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in again" })).toHaveAttribute("href", "/login");
     expect(screen.queryByRole("form")).not.toBeInTheDocument();
+  });
+
+  it("shows actual icon images and selected grants for an existing Reader", () => {
+    render(
+      <AdminUserForm
+        user={users[2]}
+        currentUserId={1}
+        icons={icons}
+      />,
+    );
+
+    expect(screen.getByRole("group", { name: "Reader event visibility" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Music icon" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Christmas icon" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Music icon permission" }))
+      .toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Christmas icon permission" }))
+      .not.toBeChecked();
+  });
+
+  it("disables individual icon choices when All icons is selected", () => {
+    render(
+      <AdminUserForm
+        user={{ ...users[2], readerAllIcons: true, readerIconIds: [] }}
+        currentUserId={1}
+        icons={icons}
+      />,
+    );
+
+    expect(screen.getByRole("checkbox", { name: "All icons" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Music icon permission" }))
+      .toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Christmas icon permission" }))
+      .toBeDisabled();
+  });
+
+  it("forces All icons on the first save when changing User to Reader", () => {
+    render(
+      <AdminUserForm user={users[1]} currentUserId={1} icons={icons} />,
+    );
+
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "Reader" },
+    });
+
+    expect(screen.getByText("Save as Reader before restricting icons."))
+      .toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "All icons" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Music icon permission" }))
+      .toBeDisabled();
+  });
+
+  it("submits selected icon ids from the image grid", () => {
+    render(
+      <AdminUserForm
+        user={users[2]}
+        currentUserId={1}
+        icons={icons}
+      />,
+    );
+    fireEvent.click(screen.getByRole("checkbox", {
+      name: "Christmas icon permission",
+    }));
+
+    const form = screen.getByRole("form", { name: "Edit Visitor" });
+    expect(form).toBeInstanceOf(HTMLFormElement);
+    if (!(form instanceof HTMLFormElement)) {
+      throw new Error("Missing edit form");
+    }
+    expect(new FormData(form).getAll("readerIconIds")).toEqual(["4", "7"]);
+  });
+
+  it("refreshes the current account page after a successful update", async () => {
+    mocks.manageUserAction.mockResolvedValue({
+      message: "Account updated.",
+      updatedUserId: 3,
+    });
+    render(
+      <AdminUserForm
+        user={users[2]}
+        currentUserId={1}
+        icons={icons}
+      />,
+    );
+
+    fireEvent.submit(screen.getByRole("form", { name: "Edit Visitor" }));
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledOnce());
   });
 });

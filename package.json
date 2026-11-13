@@ -1,6 +1,6 @@
 {
   "name": "plan-your-chaos",
-  "version": "1.3.0",
+  "version": "1.3.7",
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "scripts": {

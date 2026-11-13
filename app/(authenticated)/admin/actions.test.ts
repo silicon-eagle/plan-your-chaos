@@ -70,7 +70,26 @@ describe("admin server actions", () => {
       form("update"),
     );
     expect(result).not.toHaveProperty("temporaryPassword");
+    expect(result).toMatchObject({ updatedUserId: 2 });
+    expect(mocks.updateManagedUser).toHaveBeenCalledWith(2, "Alice", "Reader", {
+      allIcons: false,
+      iconIds: [],
+    });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin/2");
+  });
+
+  it("passes selected Reader icons as unique numeric ids", async () => {
+    const data = form("update", { readerAllIcons: "false" });
+    data.append("readerIconIds", "7");
+    data.append("readerIconIds", "4");
+    data.append("readerIconIds", "7");
+
+    await manageUserAction({}, data);
+
+    expect(mocks.updateManagedUser).toHaveBeenCalledWith(2, "Alice", "Reader", {
+      allIcons: false,
+      iconIds: [7, 4, 7],
+    });
   });
 
   it("returns to the user list after deleting the selected account", async () => {

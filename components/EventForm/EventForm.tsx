@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
-import { EventIcon } from "@/components/EventIcon/EventIcon";
+import { useActionState, useState } from "react";
+import { EventIconPicker } from "@/components/EventIconPicker/EventIconPicker";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import type { EventIcon as EventIconData } from "@/lib/events/icons";
@@ -47,17 +47,19 @@ type DateTimeFieldProps = {
   id: string;
   label: string;
   name: string;
-  defaultValue: string;
-  inputRef?: React.Ref<HTMLInputElement>;
-  onChange?: React.ChangeEventHandler<HTMLInputElement>;
+  value: string;
+  allDay: boolean;
+  fixedTime: string;
+  onChange: (value: string) => void;
 };
 
 function DateTimeField({
   id,
   label,
   name,
-  defaultValue,
-  inputRef,
+  value,
+  allDay,
+  fixedTime,
   onChange,
 }: DateTimeFieldProps) {
   return (
@@ -69,14 +71,35 @@ function DateTimeField({
         <input
           className={styles.input}
           id={id}
-          type="datetime-local"
-          name={name}
-          defaultValue={defaultValue}
-          ref={inputRef}
-          onChange={onChange}
+          type={allDay ? "date" : "datetime-local"}
+          name={allDay ? undefined : name}
+          value={allDay ? value.split("T")[0] : value}
+          onChange={(event) =>
+            onChange(
+              allDay
+                ? `${event.currentTarget.value}T${fixedTime}`
+                : event.currentTarget.value,
+            )
+          }
           required
         />
       </div>
+      {allDay && (
+        <>
+          <input
+            className={styles.input}
+            type="time"
+            aria-label={`${label} time`}
+            value={fixedTime}
+            readOnly
+          />
+          <input
+            type="hidden"
+            name={name}
+            value={`${value.split("T")[0]}T${fixedTime}`}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -98,8 +121,13 @@ export function EventForm({
   const [selectedIconId, setSelectedIconId] = useState(
     initialValues?.iconId ?? defaultIconId,
   );
-  const [isIconGridOpen, setIsIconGridOpen] = useState(false);
-  const endDateTimeRef = useRef<HTMLInputElement>(null);
+  const [allDay, setAllDay] = useState(initialValues?.allDay ?? false);
+  const [startsAt, setStartsAt] = useState(
+    initialValues?.startsAt ?? `${initialDate}T09:00`,
+  );
+  const [endsAt, setEndsAt] = useState(
+    initialValues?.endsAt ?? `${initialDate}T10:00`,
+  );
   const selectedIcon =
     icons.find((icon) => icon.id === selectedIconId) ?? icons[0];
   const owners = users.filter((user) => user.roleId === USER_ROLE_IDS.User);
@@ -138,70 +166,28 @@ export function EventForm({
         </select>
       </label>
 
-      <div className={styles.iconPicker}>
-        <span className={styles.label}>Icon</span>
-        <div className={styles.iconPickerControls}>
-          <EventIcon
-            className={styles.eventIcon}
-            fileName={selectedIcon.fileName}
-            label={`${selectedIcon.name} icon`}
-          />
-          <PixelButton
-            className={styles.iconSelectButton}
-            type="button"
-            aria-expanded={isIconGridOpen}
-            aria-controls="event-icon-grid"
-            onClick={() => setIsIconGridOpen((isOpen) => !isOpen)}
-          >
-            Select icon
-          </PixelButton>
-        </div>
-        <input
-          type="hidden"
-          name="iconId"
-          value={selectedIcon.id}
-          readOnly
-        />
-
-        {isIconGridOpen && (
-          <div
-            className={styles.iconGrid}
-            id="event-icon-grid"
-            aria-label="Event icons"
-          >
-            {icons.map((icon) => (
-              <button
-                className={styles.iconOption}
-                type="button"
-                aria-label={`Select ${icon.name} icon`}
-                aria-pressed={icon.id === selectedIcon.id}
-                onClick={() => {
-                  setSelectedIconId(icon.id);
-                  setIsIconGridOpen(false);
-                }}
-                key={icon.id}
-              >
-                <EventIcon
-                  className={styles.eventIcon}
-                  fileName={icon.fileName}
-                />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <EventIconPicker
+        id="event-icon"
+        icons={icons}
+        selectedIconId={selectedIcon.id}
+        onSelect={setSelectedIconId}
+      />
+      <input type="hidden" name="iconId" value={selectedIcon.id} readOnly />
 
       <DateTimeField
         id="event-start"
         label="Starts"
         name="startsAt"
-        defaultValue={initialValues?.startsAt ?? `${initialDate}T09:00`}
-        onChange={(event) => {
-          const endDate = new Date(event.currentTarget.valueAsNumber);
+        value={startsAt}
+        allDay={allDay}
+        fixedTime="00:00"
+        onChange={(value) => {
+          setStartsAt(value);
+          const endDate = new Date(`${value}Z`);
 
-          if (!Number.isNaN(endDate.getTime()) && endDateTimeRef.current) {
+          if (!allDay && !Number.isNaN(endDate.getTime())) {
             endDate.setUTCHours(endDate.getUTCHours() + 1);
-            endDateTimeRef.current.valueAsNumber = endDate.getTime();
+            setEndsAt(endDate.toISOString().slice(0, 16));
           }
         }}
       />
@@ -210,15 +196,18 @@ export function EventForm({
         id="event-end"
         label="Ends"
         name="endsAt"
-        defaultValue={initialValues?.endsAt ?? `${initialDate}T10:00`}
-        inputRef={endDateTimeRef}
+        value={endsAt}
+        allDay={allDay}
+        fixedTime="23:59"
+        onChange={setEndsAt}
       />
 
       <label className={styles.checkbox}>
         <input
           type="checkbox"
           name="allDay"
-          defaultChecked={initialValues?.allDay}
+          checked={allDay}
+          onChange={(event) => setAllDay(event.currentTarget.checked)}
         />
         <span>All day</span>
       </label>

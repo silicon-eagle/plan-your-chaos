@@ -78,6 +78,13 @@
       "when": 1794572189475,
       "tag": "0010_remove_admin_attendance",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794585036295,
+      "tag": "0011_faithful_hardball",
+      "breakpoints": true
     }
   ]
 }

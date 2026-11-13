@@ -10,6 +10,7 @@ import styles from "../events.module.css";
 
 type EventActionsProps = {
   eventId: number;
+  calendarDate: string;
   previousEventId: number | null;
   nextEventId: number | null;
   canEdit: boolean;
@@ -47,6 +48,7 @@ function ActionImages({ name }: { name: ActionImageName }) {
 
 export function EventActions({
   eventId,
+  calendarDate,
   previousEventId,
   nextEventId,
   canEdit,
@@ -97,7 +99,7 @@ export function EventActions({
 
       <Link
         className={buttonStyles.button}
-        href="/"
+        href={`/?date=${calendarDate}`}
         aria-label="Calendar"
       >
         <ActionImages name="calendarBtn" />

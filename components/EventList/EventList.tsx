@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireSession } from "@/lib/auth/authorization";
 import { canEditEvents, USER_ROLE_IDS } from "@/lib/auth/roles";
+import { getVisibleIconOptions } from "@/lib/events/icon-options";
 import { getEventsInRange } from "@/lib/events/queries";
 import {
   EventListClient,
@@ -14,6 +15,7 @@ type EventListProps = {
   to: Date;
   showCreateButton?: boolean;
   showUpcomingFilter?: boolean;
+  showIconFilter?: boolean;
   showFilters?: boolean;
   compact?: boolean;
   showHeader?: boolean;
@@ -25,6 +27,7 @@ export async function EventList({
   to,
   showCreateButton = false,
   showUpcomingFilter = false,
+  showIconFilter = false,
   showFilters = true,
   compact = false,
   showHeader = false,
@@ -40,7 +43,7 @@ export async function EventList({
 
   const session = await requireSession();
 
-  const [events, householdUsers] = await Promise.all([
+  const [events, householdUsers, eventIcons] = await Promise.all([
     getEventsInRange(from, to),
     showFilters
       ? db
@@ -51,6 +54,9 @@ export async function EventList({
           .from(users)
           .where(ne(users.roleId, USER_ROLE_IDS.Admin))
           .orderBy(asc(users.name))
+      : Promise.resolve([]),
+    showFilters && showIconFilter
+      ? getVisibleIconOptions(session.user)
       : Promise.resolve([]),
   ]);
   const items: EventListItem[] = events.map((event) => ({
@@ -70,8 +76,10 @@ export async function EventList({
     <EventListClient
       events={items}
       users={householdUsers}
+      icons={eventIcons}
       showCreateButton={showCreateButton && canEditEvents(session.user.role)}
       showUpcomingFilter={showUpcomingFilter}
+      showIconFilter={showIconFilter}
       showFilters={showFilters}
       compact={compact}
       showHeader={showHeader}

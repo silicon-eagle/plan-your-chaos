@@ -6,8 +6,10 @@ import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { requirePageSession } from "@/lib/auth/authorization";
-import { canEditEvents, USER_ROLE_IDS, type UserRole } from "@/lib/auth/roles";
-import { eventVisibility } from "@/lib/events/queries";
+import type { AuthenticatedSession } from "@/lib/auth/sessions";
+import { canEditEvents, USER_ROLE_IDS } from "@/lib/auth/roles";
+import { eventVisibility } from "@/lib/events/visibility";
+import { daysDiff, getDateLabel } from "@/lib/calendar/utils";
 import { EventActions } from "./EventActions";
 import styles from "../events.module.css";
 
@@ -21,13 +23,26 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
   timeStyle: "short",
 });
 
-async function getNextEvent(eventId: number, startsAt: Date, role: UserRole) {
+const calendarDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Amsterdam",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+type EventViewer = AuthenticatedSession["user"];
+
+async function getNextEvent(
+  eventId: number,
+  startsAt: Date,
+  viewer: EventViewer,
+) {
   const [event] = await db
     .select({ id: events.id })
     .from(events)
     .where(
       and(
-        eventVisibility(role),
+        eventVisibility(viewer),
         or(
           gt(events.startsAt, startsAt),
           and(eq(events.startsAt, startsAt), gt(events.id, eventId)),
@@ -40,13 +55,17 @@ async function getNextEvent(eventId: number, startsAt: Date, role: UserRole) {
   return event?.id ?? null;
 }
 
-async function getPrevEvent(eventId: number, startsAt: Date, role: UserRole) {
+async function getPrevEvent(
+  eventId: number,
+  startsAt: Date,
+  viewer: EventViewer,
+) {
   const [event] = await db
     .select({ id: events.id })
     .from(events)
     .where(
       and(
-        eventVisibility(role),
+        eventVisibility(viewer),
         or(
           lt(events.startsAt, startsAt),
           and(eq(events.startsAt, startsAt), lt(events.id, eventId)),
@@ -85,7 +104,7 @@ export default async function EventPage({ params }: EventPageProps) {
     .from(events)
     .innerJoin(users, eq(events.userId, users.id))
     .leftJoin(icons, eq(events.iconId, icons.id))
-    .where(and(eq(events.id, eventId), eventVisibility(session.user.role)))
+    .where(and(eq(events.id, eventId), eventVisibility(session.user)))
     .limit(1);
 
   if (!event) {
@@ -105,8 +124,8 @@ export default async function EventPage({ params }: EventPageProps) {
         ne(users.roleId, USER_ROLE_IDS.Admin),
       ))
       .orderBy(asc(users.name)),
-    getPrevEvent(event.id, event.startsAt, session.user.role),
-    getNextEvent(event.id, event.startsAt, session.user.role),
+    getPrevEvent(event.id, event.startsAt, session.user),
+    getNextEvent(event.id, event.startsAt, session.user),
   ]);
 
   return (
@@ -117,20 +136,36 @@ export default async function EventPage({ params }: EventPageProps) {
       >
         <EventActions
           eventId={event.id}
+          calendarDate={calendarDateFormatter.format(event.startsAt)}
           previousEventId={previousEventId}
           nextEventId={nextEventId}
           canEdit={canEditEvents(session.user.role)}
         />
-        <div className={styles.eventHeading}>
-          {event.iconFileName && (
-            <EventIcon
-              className={styles.eventIcon}
-              fileName={event.iconFileName}
-              label={event.iconName ? `${event.iconName} icon` : undefined}
-            />
-          )}
-          <h1 id="event-heading">{event.title}</h1>
-        </div>
+        <header>
+          <div className={styles.eventHeading}>
+            {event.iconFileName && (
+              <EventIcon
+                className={styles.eventIcon}
+                fileName={event.iconFileName}
+                label={event.iconName ? `${event.iconName} icon` : undefined}
+              />
+            )}
+            <h1 id="event-heading">{event.title}</h1>
+          </div>
+          <p>
+            <time dateTime={event.startsAt.toISOString()}>
+              {getDateLabel(event.startsAt)}
+            </time>
+            {daysDiff(event.startsAt, event.endsAt) !== 0 && (
+              <>
+                {" - "}
+                <time dateTime={event.endsAt.toISOString()}>
+                  {getDateLabel(event.endsAt)}
+                </time>
+              </>
+            )}
+          </p>
+        </header>
 
         <dl className={styles.details}>
           <div>

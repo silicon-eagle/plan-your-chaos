@@ -10,6 +10,65 @@ const icons = [
 describe("EventForm", () => {
   const action = vi.fn();
 
+  it("locks all-day times while keeping both dates editable and submitted", () => {
+    const { container } = render(
+      <EventForm
+        action={action}
+        initialDate="2026-07-24"
+        users={[]}
+        activeUserId={1}
+        icons={icons}
+        defaultIconId={1}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "All day" }));
+    expect(screen.getByLabelText("Starts")).toHaveAttribute("type", "date");
+    expect(screen.getByLabelText("Starts time")).toHaveValue("00:00");
+    expect(screen.getByLabelText("Starts time")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Ends time")).toHaveValue("23:59");
+    expect(screen.getByLabelText("Ends time")).toHaveAttribute("readonly");
+
+    fireEvent.change(screen.getByLabelText("Ends"), {
+      target: { value: "2026-07-27" },
+    });
+    fireEvent.change(screen.getByLabelText("Starts"), {
+      target: { value: "2026-07-25" },
+    });
+    const data = new FormData(container.querySelector("form")!);
+    expect(data.get("startsAt")).toBe("2026-07-25T00:00");
+    expect(data.get("endsAt")).toBe("2026-07-27T23:59");
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "All day" }));
+    expect(screen.getByLabelText("Starts")).toHaveAttribute("type", "datetime-local");
+    fireEvent.change(screen.getByLabelText("Starts"), {
+      target: { value: "2026-07-25T18:00" },
+    });
+    expect(screen.getByLabelText("Ends")).toHaveValue("2026-07-25T19:00");
+  });
+
+  it("locks the times of an existing all-day multi-day event on opening", () => {
+    const { container } = render(
+      <EventForm
+        action={action}
+        initialDate="2026-07-24"
+        users={[]}
+        activeUserId={1}
+        icons={icons}
+        defaultIconId={1}
+        initialValues={{
+          title: "Trip", startsAt: "2026-07-24T18:00", endsAt: "2026-07-27T19:00",
+          allDay: true, hidden: false, userId: 1, notes: "", attendantIds: [], iconId: 1,
+        }}
+      />,
+    );
+    expect(screen.getByLabelText("Starts")).toHaveValue("2026-07-24");
+    expect(screen.getByLabelText("Ends")).toHaveValue("2026-07-27");
+    const data = new FormData(container.querySelector("form")!);
+    expect(data.get("startsAt")).toBe("2026-07-24T00:00");
+    expect(data.get("endsAt")).toBe("2026-07-27T23:59");
+  });
+
   it.each([false, true])("excludes Admin attendance, including saved selections (editing: %s)", (editing) => {
     const { container } = render(
       <EventForm
@@ -109,6 +168,9 @@ describe("EventForm", () => {
     expect(
       container.querySelector('input[name="iconId"]'),
     ).toHaveValue("2");
+    expect(screen.getByRole("button", { name: "Select icon" })).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Select Cat icon" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select all event icons" })).not.toBeInTheDocument();
   });
 
   it("keeps the native date-time inputs without extra buttons", () => {
@@ -136,6 +198,22 @@ describe("EventForm", () => {
         name: /choose .* date and time/i,
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps the inline form picker open when another field is clicked", () => {
+    render(
+      <EventForm
+        action={action}
+        initialDate="2026-07-24"
+        users={[]}
+        activeUserId={1}
+        icons={icons}
+        defaultIconId={1}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Select icon" }));
+    fireEvent.pointerDown(screen.getByLabelText("Title"));
+    expect(screen.getByRole("button", { name: "Select Cat icon" })).toBeInTheDocument();
   });
 
   it("moves the end time to one hour after the selected start time", () => {

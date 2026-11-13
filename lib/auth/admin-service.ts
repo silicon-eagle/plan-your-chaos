@@ -1,7 +1,14 @@
 import { randomBytes } from "node:crypto";
-import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { loginChallenges, sessions, userRoles, users } from "@/db/schema";
+import {
+  icons,
+  loginChallenges,
+  readerIconPermissions,
+  sessions,
+  userRoles,
+  users,
+} from "@/db/schema";
 import { hashPassword } from "./passwords";
 import { USER_ROLE_IDS, type UserRole } from "./roles";
 import { usernameMatches } from "./usernames";
@@ -17,6 +24,13 @@ export type ManagedUser = {
   hasPassword: boolean;
   mustSetPassword: boolean;
   hasTotp: boolean;
+  readerAllIcons: boolean;
+  readerIconIds: number[];
+};
+
+export type ReaderIconScope = {
+  allIcons: boolean;
+  iconIds: number[];
 };
 
 export class AdminValidationError extends Error {
@@ -131,19 +145,32 @@ function managedUserQuery() {
     hasPassword: sql<boolean>`${users.passwordHash} is not null`,
     mustSetPassword: users.mustSetPassword,
     hasTotp: sql<boolean>`${users.totpSecretEncrypted} is not null and ${users.totpEnabledAt} is not null`,
+    readerAllIcons: users.readerAllIcons,
   })
     .from(users)
     .innerJoin(userRoles, eq(users.roleId, userRoles.id));
 }
 
 export async function listManagedUsers(): Promise<ManagedUser[]> {
-  return managedUserQuery().orderBy(asc(users.id));
+  const managedUsers = await managedUserQuery().orderBy(asc(users.id));
+  return managedUsers.map((user) => ({ ...user, readerIconIds: [] }));
 }
 
 export async function getManagedUser(userId: number): Promise<ManagedUser | undefined> {
   validateUserId(userId);
   const [user] = await managedUserQuery().where(eq(users.id, userId)).limit(1);
-  return user;
+  if (!user) return undefined;
+  if (user.role !== "Reader" || user.readerAllIcons) {
+    return { ...user, readerIconIds: [] };
+  }
+  const permissions = await db
+    .select({ iconId: readerIconPermissions.iconId })
+    .from(readerIconPermissions)
+    .where(eq(readerIconPermissions.userId, userId));
+  return {
+    ...user,
+    readerIconIds: permissions.map(({ iconId }) => iconId),
+  };
 }
 
 export async function createManagedUser(name: string, role: string) {
@@ -161,15 +188,64 @@ export async function createManagedUser(name: string, role: string) {
   }));
 }
 
-export async function updateManagedUser(userId: number, name: string, role: string) {
+export async function updateManagedUser(
+  userId: number,
+  name: string,
+  role: string,
+  readerIconScope: ReaderIconScope,
+) {
   validateUserId(userId);
   const validName = validateName(name);
   const roleId = editableRoleId(role);
   await handleNameConflict(() => db.transaction(async (tx) => {
     const user = await lockUser(tx, userId);
     protectAdmin(user.roleId);
-    await tx.update(users).set({ name: validName, roleId })
+
+    const changingToReader =
+      user.roleId !== USER_ROLE_IDS.Reader && roleId === USER_ROLE_IDS.Reader;
+    let readerAllIcons = true;
+    let iconIds: number[] = [];
+
+    if (roleId === USER_ROLE_IDS.Reader && !changingToReader) {
+      readerAllIcons = readerIconScope.allIcons;
+      if (!readerAllIcons) {
+        iconIds = [...new Set(readerIconScope.iconIds)];
+        if (
+          iconIds.length === 0 ||
+          iconIds.some((iconId) => !Number.isSafeInteger(iconId) || iconId <= 0)
+        ) {
+          throw new AdminValidationError("Select at least one icon.");
+        }
+        const existingIcons = await tx
+          .select({ id: icons.id })
+          .from(icons)
+          .where(inArray(icons.id, iconIds));
+        if (existingIcons.length !== iconIds.length) {
+          throw new AdminValidationError("Choose existing icons.");
+        }
+      }
+    } else if (
+      roleId !== USER_ROLE_IDS.Reader &&
+      (!readerIconScope.allIcons || readerIconScope.iconIds.length > 0)
+    ) {
+      throw new AdminValidationError(
+        "Icon permissions can only be assigned to an existing Reader.",
+      );
+    }
+
+    await tx.update(users).set({
+      name: validName,
+      roleId,
+      readerAllIcons,
+    })
       .where(and(eq(users.id, userId), ne(users.roleId, USER_ROLE_IDS.Admin)));
+    await tx.delete(readerIconPermissions)
+      .where(eq(readerIconPermissions.userId, userId));
+    if (!readerAllIcons) {
+      await tx.insert(readerIconPermissions).values(
+        iconIds.map((iconId) => ({ userId, iconId })),
+      );
+    }
   }));
 }
 

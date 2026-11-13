@@ -16,6 +16,7 @@ export default async function EventsPage() {
           to={endOfTime}
           showCreateButton
           showUpcomingFilter
+          showIconFilter
           showHeader
           fillHeight
         />

@@ -1,7 +1,10 @@
+import { asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
+import { db } from "@/db";
+import { icons } from "@/db/schema";
 import { requirePageRole } from "@/lib/auth/authorization";
 import { getManagedUser } from "@/lib/auth/admin-service";
 import { AdminUserForm } from "../AdminUserForm";
@@ -16,7 +19,17 @@ export default async function AdminUserPage({ params }: Props) {
   const userId = parsePositiveInteger((await params).id);
   if (!userId) notFound();
 
-  const user = await getManagedUser(userId);
+  const [user, eventIcons] = await Promise.all([
+    getManagedUser(userId),
+    db
+      .select({
+        id: icons.id,
+        name: icons.name,
+        fileName: icons.fileName,
+      })
+      .from(icons)
+      .orderBy(asc(icons.name)),
+  ]);
   if (!user) notFound();
 
   return (
@@ -31,7 +44,12 @@ export default async function AdminUserPage({ params }: Props) {
           <UserAvatar name={user.name} decorative />
           <h1 id="user-heading">{user.name}</h1>
         </div>
-        <AdminUserForm key={user.id} user={user} currentUserId={session.user.id} />
+        <AdminUserForm
+          key={user.id}
+          user={user}
+          currentUserId={session.user.id}
+          icons={eventIcons}
+        />
       </section>
     </main>
   );

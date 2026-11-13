@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SiteFooter } from "@/components/SiteFooter";
 import { getSession } from "@/lib/auth/authorization";
 import { LoginForm } from "./LoginForm";
 import styles from "./login.module.css";
@@ -10,8 +11,11 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className={styles.loginPage}>
-      <LoginForm />
-    </main>
+    <>
+      <main className={styles.loginPage}>
+        <LoginForm />
+      </main>
+      <SiteFooter />
+    </>
   );
 }

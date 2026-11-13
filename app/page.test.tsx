@@ -67,4 +67,12 @@ describe("Home", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Upcoming event list")).toBeInTheDocument();
   });
+
+  it("opens the calendar at the requested event month", async () => {
+    mocks.getSession.mockResolvedValue({
+      user: { id: 1, name: "Alice", role: "User" },
+    });
+    render(await Home({ searchParams: Promise.resolve({ date: "2026-07-24" }) }));
+    expect(screen.getByRole("heading", { name: "Jul 2026" })).toBeInTheDocument();
+  });
 });

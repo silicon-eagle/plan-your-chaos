@@ -67,7 +67,9 @@ describe("GET /api/events/:id/attendants", () => {
     expect(response.status).toBe(404);
     const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]!);
     expect(query.sql).toContain('"events"."hidden"');
-    expect(query.params).toEqual([1, false]);
+    expect(query.sql).toContain('"reader_icon_permissions"."user_id"');
+    expect(query.params).toContain(1);
+    expect(query.params).toContain(false);
     expect(database.select).toHaveBeenCalledOnce();
   });
 

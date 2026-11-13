@@ -23,7 +23,9 @@ import {
   resetTotp,
   updateManagedUser,
 } from "./admin-service";
-import { users } from "@/db/schema";
+import { icons, readerIconPermissions, users } from "@/db/schema";
+
+const allIcons = { allIcons: true as const, iconIds: [] };
 
 let target: { id: number; name: string; roleId: number } | undefined;
 let written: Record<string, unknown>[];
@@ -64,7 +66,8 @@ describe("managed accounts", () => {
   it.each([true, false])("loads a single account by ID (exists: %s)", async (exists) => {
     const account = {
       id: 2, name: "Tim", role: "User", hasPassword: true,
-      mustSetPassword: false, hasTotp: false,
+      mustSetPassword: false, hasTotp: false, readerAllIcons: true,
+      readerIconIds: [],
     };
     const where = vi.fn().mockReturnValue({
       limit: async () => exists ? [account] : [],
@@ -76,6 +79,31 @@ describe("managed accounts", () => {
     const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
     expect(query.sql).toBe('"users"."id" = $1');
     expect(query.params).toEqual([2]);
+  });
+
+  it("loads saved icon grants for a restricted Reader", async () => {
+    const account = {
+      id: 3, name: "Visitor", role: "Reader", hasPassword: true,
+      mustSetPassword: false, hasTotp: false, readerAllIcons: false,
+    };
+    mocks.select
+      .mockReturnValueOnce({
+        from: () => ({
+          innerJoin: () => ({
+            where: () => ({ limit: async () => [account] }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: () => ({
+          where: async () => [{ iconId: 4 }, { iconId: 7 }],
+        }),
+      });
+
+    expect(await getManagedUser(3)).toEqual({
+      ...account,
+      readerIconIds: [4, 7],
+    });
   });
 
   it("accepts deletion confirmation regardless of letter case", async () => {
@@ -90,7 +118,7 @@ describe("managed accounts", () => {
     await expect(createManagedUser("TIM", "Reader")).rejects.toThrow(
       "A user with that name already exists",
     );
-    await expect(updateManagedUser(2, "ADMIN", "Reader")).rejects.toThrow(
+    await expect(updateManagedUser(2, "ADMIN", "Reader", allIcons)).rejects.toThrow(
       "A user with that name already exists",
     );
   });
@@ -116,20 +144,31 @@ describe("managed accounts", () => {
   });
 
   it("changes a non-admin name and role together under a row lock", async () => {
-    await updateManagedUser(2, "New name", "Reader");
+    await updateManagedUser(2, "New name", "Reader", {
+      allIcons: false,
+      iconIds: [7],
+    });
     expect(lock).toHaveBeenCalledWith("update");
-    expect(written).toEqual([{ name: "New name", roleId: 3 }]);
+    expect(written).toEqual([{
+      name: "New name",
+      roleId: 3,
+      readerAllIcons: true,
+    }]);
     expect(mocks.update).toHaveBeenCalledWith(users);
+    expect(mocks.delete).toHaveBeenCalledWith(readerIconPermissions);
+    expect(mocks.insert).not.toHaveBeenCalledWith(readerIconPermissions);
   });
 
   it("cannot promote a user to Admin", async () => {
-    await expect(updateManagedUser(2, "Tim", "Admin")).rejects.toThrow(AdminValidationError);
+    await expect(updateManagedUser(2, "Tim", "Admin", allIcons))
+      .rejects.toThrow(AdminValidationError);
     expect(mocks.update).not.toHaveBeenCalled();
   });
 
   it("checks the locked database role rather than a stale UI role before demotion", async () => {
     target = { id: 2, name: "Tim", roleId: 1 };
-    await expect(updateManagedUser(2, "Tim", "Reader")).rejects.toThrow("Admin accounts");
+    await expect(updateManagedUser(2, "Tim", "Reader", allIcons))
+      .rejects.toThrow("Admin accounts");
     expect(lock).toHaveBeenCalledWith("update");
     expect(mocks.update).not.toHaveBeenCalled();
   });
@@ -143,7 +182,7 @@ describe("managed accounts", () => {
   it("cannot bypass Admin protection by demoting then deleting", async () => {
     target = { id: 1, name: "Admin", roleId: 1 };
     const results = await Promise.allSettled([
-      updateManagedUser(1, "Ordinary", "User"),
+      updateManagedUser(1, "Ordinary", "User", allIcons),
       deleteManagedUser(1, "Admin"),
     ]);
     expect(results.map((result) => result.status)).toEqual(["rejected", "rejected"]);
@@ -161,7 +200,8 @@ describe("managed accounts", () => {
 
   it("rejects a missing account without writing", async () => {
     target = undefined;
-    await expect(updateManagedUser(2, "New name", "Reader")).rejects.toThrow("User not found");
+    await expect(updateManagedUser(2, "New name", "Reader", allIcons))
+      .rejects.toThrow("User not found");
     expect(mocks.update).not.toHaveBeenCalled();
   });
 
@@ -175,6 +215,71 @@ describe("managed accounts", () => {
     const unavailable = new Error("Database unavailable");
     mocks.transaction.mockRejectedValueOnce(unavailable);
     await expect(createManagedUser("Other", "User")).rejects.toBe(unavailable);
+  });
+
+  it("replaces icon grants for an existing restricted Reader", async () => {
+    target = { id: 2, name: "Tim", roleId: 3 };
+    mocks.select.mockImplementation(() => ({
+      from: (table: unknown) => table === icons
+        ? { where: async () => [{ id: 4 }, { id: 7 }] }
+        : {
+            where: () => ({
+              for: lock,
+              limit: async () => target ? [{ ...target }] : [],
+            }),
+          },
+    }));
+
+    await updateManagedUser(2, "Tim", "Reader", {
+      allIcons: false,
+      iconIds: [7, 4, 7],
+    });
+
+    expect(written).toContainEqual({
+      name: "Tim",
+      roleId: 3,
+      readerAllIcons: false,
+    });
+    expect(mocks.delete).toHaveBeenCalledWith(readerIconPermissions);
+    expect(mocks.insert).toHaveBeenCalledWith(readerIconPermissions);
+    expect(written).toContainEqual([
+      { userId: 2, iconId: 7 },
+      { userId: 2, iconId: 4 },
+    ]);
+  });
+
+  it("rejects a restricted Reader with no selected icons", async () => {
+    target = { id: 2, name: "Tim", roleId: 3 };
+
+    await expect(updateManagedUser(2, "Tim", "Reader", {
+      allIcons: false,
+      iconIds: [],
+    })).rejects.toThrow("Select at least one icon");
+
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.delete).not.toHaveBeenCalled();
+  });
+
+  it("rejects nonexistent icon ids before writing", async () => {
+    target = { id: 2, name: "Tim", roleId: 3 };
+    mocks.select.mockImplementation(() => ({
+      from: (table: unknown) => table === icons
+        ? { where: async () => [{ id: 4 }] }
+        : {
+            where: () => ({
+              for: lock,
+              limit: async () => target ? [{ ...target }] : [],
+            }),
+          },
+    }));
+
+    await expect(updateManagedUser(2, "Tim", "Reader", {
+      allIcons: false,
+      iconIds: [4, 7],
+    })).rejects.toThrow("Choose existing icons");
+
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.delete).not.toHaveBeenCalled();
   });
 });
 

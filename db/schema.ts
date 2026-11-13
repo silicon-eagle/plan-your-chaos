@@ -48,6 +48,7 @@ export const users = pgTable("users", {
   lastTotpCounter: integer("last_totp_counter"),
   failedLoginCount: integer("failed_login_count").default(0).notNull(),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  readerAllIcons: boolean("reader_all_icons").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -62,6 +63,21 @@ export const icons = pgTable(
     name: text("name").notNull(),
     fileName: text("file_name").notNull(),
   },
+);
+
+export const readerIconPermissions = pgTable(
+  "reader_icon_permissions",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    iconId: integer("icon_id")
+      .notNull()
+      .references(() => icons.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.iconId] }),
+  ],
 );
 
 export const events = pgTable(
@@ -170,13 +186,29 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   }),
   events: many(events),
   eventAttendances: many(eventAttendants),
+  readerIconPermissions: many(readerIconPermissions),
   sessions: many(sessions),
   loginChallenges: many(loginChallenges),
 }));
 
 export const iconsRelations = relations(icons, ({ many }) => ({
   events: many(events),
+  readerPermissions: many(readerIconPermissions),
 }));
+
+export const readerIconPermissionsRelations = relations(
+  readerIconPermissions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [readerIconPermissions.userId],
+      references: [users.id],
+    }),
+    icon: one(icons, {
+      fields: [readerIconPermissions.iconId],
+      references: [icons.id],
+    }),
+  }),
+);
 
 export const eventsRelations = relations(events, ({ many, one }) => ({
   user: one(users, {

@@ -6,7 +6,7 @@ import { eventAttendants, events, users } from "@/db/schema";
 import { withApiAuthentication } from "@/lib/auth/authorization";
 import { USER_ROLE_IDS } from "@/lib/auth/roles";
 import type { AuthenticatedSession } from "@/lib/auth/sessions";
-import { eventVisibility } from "@/lib/events/queries";
+import { eventVisibility } from "@/lib/events/visibility";
 import {
   logger,
   withDatabaseLogging,
@@ -41,7 +41,7 @@ async function getAttendants(
   const [event] = await db
     .select({ id: events.id })
     .from(events)
-    .where(and(eq(events.id, eventId), eventVisibility(session.user.role)))
+    .where(and(eq(events.id, eventId), eventVisibility(session.user)))
     .limit(1);
 
   if (!event) {
