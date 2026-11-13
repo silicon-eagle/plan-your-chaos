@@ -1,8 +1,8 @@
-import { asc } from "drizzle-orm";
+import { asc, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireSession } from "@/lib/auth/authorization";
-import { canEditEvents } from "@/lib/auth/roles";
+import { canEditEvents, USER_ROLE_IDS } from "@/lib/auth/roles";
 import { getEventsInRange } from "@/lib/events/queries";
 import {
   EventListClient,
@@ -49,6 +49,7 @@ export async function EventList({
             name: users.name,
           })
           .from(users)
+          .where(ne(users.roleId, USER_ROLE_IDS.Admin))
           .orderBy(asc(users.name))
       : Promise.resolve([]),
   ]);

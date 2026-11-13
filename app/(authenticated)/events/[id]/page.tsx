@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lt, ne, or } from "drizzle-orm";
 import { EventIcon } from "@/components/EventIcon/EventIcon";
 import { notFound } from "next/navigation";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { requirePageSession } from "@/lib/auth/authorization";
-import { canEditEvents, type UserRole } from "@/lib/auth/roles";
+import { canEditEvents, USER_ROLE_IDS, type UserRole } from "@/lib/auth/roles";
 import { eventVisibility } from "@/lib/events/queries";
 import { EventActions } from "./EventActions";
 import styles from "../events.module.css";
@@ -100,7 +100,10 @@ export default async function EventPage({ params }: EventPageProps) {
       })
       .from(eventAttendants)
       .innerJoin(users, eq(eventAttendants.userId, users.id))
-      .where(eq(eventAttendants.eventId, event.id))
+      .where(and(
+        eq(eventAttendants.eventId, event.id),
+        ne(users.roleId, USER_ROLE_IDS.Admin),
+      ))
       .orderBy(asc(users.name)),
     getPrevEvent(event.id, event.startsAt, session.user.role),
     getNextEvent(event.id, event.startsAt, session.user.role),

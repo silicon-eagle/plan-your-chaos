@@ -10,6 +10,32 @@ const icons = [
 describe("EventForm", () => {
   const action = vi.fn();
 
+  it.each([false, true])("excludes Admin attendance, including saved selections (editing: %s)", (editing) => {
+    const { container } = render(
+      <EventForm
+        action={action}
+        initialDate="2026-07-24"
+        users={[
+          { id: 2, name: "Tim", roleId: 2 },
+          { id: 3, name: "Visitor", roleId: 3 },
+          { id: 4, name: "Admin", roleId: 1 },
+        ]}
+        activeUserId={2}
+        icons={icons}
+        defaultIconId={1}
+        initialValues={editing ? {
+          title: "Dinner", startsAt: "2026-07-24T18:00", endsAt: "2026-07-24T19:00",
+          allDay: false, hidden: false, userId: 2, notes: "",
+          attendantIds: [2, 3, 4], iconId: 1,
+        } : undefined}
+      />,
+    );
+    expect(screen.getByRole("checkbox", { name: "Tim" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Visitor" })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Admin" })).not.toBeInTheDocument();
+    expect(new FormData(container.querySelector("form")!).getAll("attendantIds")).not.toContain("4");
+  });
+
   it("preserves the current owner and hidden flag when editing", () => {
     render(
       <EventForm

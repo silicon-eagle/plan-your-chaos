@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { PgDialect } from "drizzle-orm/pg-core";
+import type { SQL } from "drizzle-orm";
 
 const mocks = vi.hoisted(() => ({
   requireSession: vi.fn(),
@@ -26,6 +28,22 @@ beforeEach(() => {
 });
 
 describe("EventList", () => {
+  it("excludes Admin from the attendant filter choices", async () => {
+    mocks.requireSession.mockResolvedValue({ user: { id: 2, role: "User" } });
+    const where = vi.fn<(condition: SQL) => unknown>().mockReturnValue({
+      orderBy: async () => [],
+    });
+    mocks.select.mockReturnValue({
+      from: () => ({ where, orderBy: async () => [] }),
+    });
+    await EventList({ from: new Date("2026-07-01"), to: new Date("2026-08-01") });
+    const queries = where.mock.calls.map(([condition]) => new PgDialect().sqlToQuery(condition));
+    expect(queries).toContainEqual(expect.objectContaining({
+      sql: '"users"."role_id" <> $1',
+      params: [1],
+    }));
+  });
+
   it.each(["Reader", "User", "Admin"])("gates the create control for %s", async (role) => {
     mocks.select.mockClear();
     mocks.requireSession.mockResolvedValue({ user: { id: 1, role } });

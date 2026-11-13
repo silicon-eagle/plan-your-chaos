@@ -1,9 +1,10 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
 import { withApiAuthentication } from "@/lib/auth/authorization";
+import { USER_ROLE_IDS } from "@/lib/auth/roles";
 import type { AuthenticatedSession } from "@/lib/auth/sessions";
 import { eventVisibility } from "@/lib/events/queries";
 import {
@@ -55,7 +56,10 @@ async function getAttendants(
     })
     .from(eventAttendants)
     .innerJoin(users, eq(eventAttendants.userId, users.id))
-    .where(eq(eventAttendants.eventId, eventId))
+    .where(and(
+      eq(eventAttendants.eventId, eventId),
+      ne(users.roleId, USER_ROLE_IDS.Admin),
+    ))
     .orderBy(asc(users.name));
 
   return NextResponse.json({ attendants });
@@ -112,6 +116,7 @@ async function addAttendant(
       id: users.id,
       name: users.name,
       createdAt: users.createdAt,
+      roleId: users.roleId,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -119,6 +124,10 @@ async function addAttendant(
 
   if (!user) {
     return errorResponse("User not found", 404);
+  }
+
+  if (user.roleId === USER_ROLE_IDS.Admin) {
+    return errorResponse("Admin accounts cannot attend events");
   }
 
   const [attendance] = await withDatabaseLogging(
@@ -141,7 +150,9 @@ async function addAttendant(
     userId,
     source: "api",
   });
-  return NextResponse.json({ attendant: user }, { status: 201 });
+  return NextResponse.json({
+    attendant: { id: user.id, name: user.name, createdAt: user.createdAt },
+  }, { status: 201 });
 }
 
 export const GET = withRequestLogging(

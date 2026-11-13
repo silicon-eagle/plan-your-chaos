@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PgDialect } from "drizzle-orm/pg-core";
+import type { SQL } from "drizzle-orm";
 
 const mocks = vi.hoisted(() => ({
   findSessionByToken: vi.fn(),
@@ -24,7 +26,7 @@ import NewEventPage from "@/app/(authenticated)/events/new/page";
 import EditEventPage from "@/app/(authenticated)/events/[id]/edit/page";
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
 });
 
 describe.each(["Reader", "Admin"])("%s permissions across event entry points", (role) => {
@@ -65,6 +67,36 @@ describe.each(["Reader", "Admin"])("%s permissions across event entry points", (
     await expect(updateAction(1, { error: null }, new FormData())).rejects.toThrow("Forbidden");
     await expect(deleteAction(new FormData())).rejects.toThrow("Forbidden");
     expect(mocks.select).not.toHaveBeenCalled();
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe("attendant eligibility", () => {
+  it.each(["create", "edit"])("rejects Admin attendance in the %s action before writing", async (operation) => {
+    mocks.findSessionByToken.mockResolvedValue({
+      user: { id: 2, name: "Tim", role: "User" },
+    });
+    const where = vi.fn<(condition: SQL) => Promise<unknown[]>>(async (condition) => {
+      const query = new PgDialect().sqlToQuery(condition);
+      expect(query.sql).toContain('"users"."role_id" <>');
+      expect(query.params).toEqual([4, 1]);
+      return [];
+    });
+    mocks.select
+      .mockReturnValueOnce({
+        from: () => ({ where: () => ({ limit: async () => [{ id: 2 }] }) }),
+      })
+      .mockReturnValueOnce({ from: () => ({ where }) });
+    const form = new FormData();
+    Object.entries({
+      title: "Dinner", userId: "2", iconId: "1",
+      startsAt: "2026-07-24T18:00", endsAt: "2026-07-24T19:00",
+      attendantIds: "4",
+    }).forEach(([key, value]) => form.set(key, value));
+    const result = operation === "create"
+      ? await createAction({ error: null }, form)
+      : await updateAction(12, { error: null }, form);
+    expect(result.error).toContain("cannot attend events");
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
 });

@@ -103,6 +103,7 @@ export function EventForm({
   const selectedIcon =
     icons.find((icon) => icon.id === selectedIconId) ?? icons[0];
   const owners = users.filter((user) => user.roleId === USER_ROLE_IDS.User);
+  const attendants = users.filter((user) => user.roleId !== USER_ROLE_IDS.Admin);
   const initialOwnerId = initialValues?.userId ?? activeUserId;
   const selectedOwnerExists = owners.some(({ id }) => id === initialOwnerId);
 
@@ -243,7 +244,7 @@ export function EventForm({
       <fieldset className={styles.attendants}>
         <legend className={styles.label}>Attendants</legend>
         <div className={styles.attendantList}>
-          {users.map((user) => (
+          {attendants.map((user) => (
             <label className={styles.attendant} key={user.id}>
               <input
                 type="checkbox"

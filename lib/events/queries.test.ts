@@ -22,6 +22,25 @@ beforeEach(() => {
 });
 
 describe("getEventsInRange", () => {
+  it("excludes Admin from the attendance returned for calendar events", async () => {
+    mocks.requireSession.mockResolvedValue({ user: { id: 2, role: "User" } });
+    const where = vi.fn<(condition: SQL) => unknown>().mockReturnValue({
+      orderBy: async () => [{ eventId: 12, id: 2, name: "Tim" }],
+    });
+    mocks.select
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () => ({ orderBy: async () => [{ id: 12, iconId: null }] }),
+        }),
+      })
+      .mockReturnValueOnce({ from: () => ({ innerJoin: () => ({ where }) }) });
+    const result = await getEventsInRange(new Date("2026-07-01"), new Date("2026-08-01"));
+    expect(result[0].attendants).toEqual([{ id: 2, name: "Tim", createdAt: undefined }]);
+    const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
+    expect(query.sql).toContain('"users"."role_id" <>');
+    expect(query.params).toEqual([12, 1]);
+  });
+
   it.each(["Reader", "User", "Admin"])("filters hidden events at the database for %s", async (role) => {
     mocks.requireSession.mockResolvedValue({ user: { id: 1, role } });
     const where = vi.fn<(condition: SQL | undefined) => unknown>()

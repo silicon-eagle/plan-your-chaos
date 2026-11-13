@@ -1,10 +1,11 @@
 "use server";
 
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
 import { requireRole } from "@/lib/auth/authorization";
+import { USER_ROLE_IDS } from "@/lib/auth/roles";
 import { parseEventFormData } from "@/lib/events/form-data";
 import { resolveEventIconId } from "@/lib/events/icons";
 import { isEventOwner } from "@/lib/events/owners";
@@ -51,14 +52,19 @@ export async function updateEvent(
     const selectedUsers = await db
       .select({ id: users.id })
       .from(users)
-      .where(inArray(users.id, attendantIds));
+      .where(
+        and(
+          inArray(users.id, attendantIds),
+          ne(users.roleId, USER_ROLE_IDS.Admin),
+        ),
+      );
 
     if (selectedUsers.length !== attendantIds.length) {
       logger.warn("event.update.rejected", {
         eventId,
-        reason: "unknown_attendant",
+        reason: "invalid_attendant",
       });
-      return { error: "One or more selected attendants no longer exist." };
+      return { error: "One or more selected attendants no longer exist or cannot attend events." };
     }
   }
 

@@ -92,7 +92,7 @@ describe("GET /api/events/:id/attendants", () => {
 
     const attendants = [{ id: 2, name: "Eve" }];
     const orderBy = vi.fn().mockResolvedValue(attendants);
-    const where = vi.fn(() => ({ orderBy }));
+    const where = vi.fn<(condition: SQL | undefined) => unknown>().mockReturnValue({ orderBy });
     const innerJoin = vi.fn(() => ({ where }));
     database.select.mockReturnValueOnce({
       from: vi.fn(() => ({ innerJoin })),
@@ -105,6 +105,9 @@ describe("GET /api/events/:id/attendants", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ attendants });
+    const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]!);
+    expect(query.sql).toContain('"users"."role_id" <>');
+    expect(query.params).toEqual([1, 1]);
   });
 });
 
@@ -129,11 +132,31 @@ describe("POST /api/events/:id/attendants", () => {
     expect(database.select).not.toHaveBeenCalled();
   });
 
-  it("adds an existing user to an existing event", async () => {
+  it("rejects adding an Admin account, even when requested by a User", async () => {
     authMocks.getSession.mockResolvedValue(baseSession);
     database.select
       .mockReturnValueOnce(mockLookup([{ id: 1 }]))
-      .mockReturnValueOnce(mockLookup([{ id: 2, name: "Eve" }]));
+      .mockReturnValueOnce(mockLookup([{ id: 4, name: "Admin", roleId: 1 }]));
+    const response = await POST(
+      new Request("http://localhost/api/events/1/attendants", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ userId: 4 }),
+      }),
+      { params: Promise.resolve({ id: "1" }) },
+    );
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Admin accounts cannot attend events",
+    });
+    expect(database.insert).not.toHaveBeenCalled();
+  });
+
+  it.each([2, 3])("allows an existing account with role ID %s to attend", async (roleId) => {
+    authMocks.getSession.mockResolvedValue(baseSession);
+    database.select
+      .mockReturnValueOnce(mockLookup([{ id: 1 }]))
+      .mockReturnValueOnce(mockLookup([{ id: 2, name: "Eve", roleId }]));
 
     const returning = vi
       .fn()

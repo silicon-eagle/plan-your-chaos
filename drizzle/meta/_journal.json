@@ -71,6 +71,13 @@
       "when": 1794531014373,
       "tag": "0009_case_insensitive_usernames",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794572189475,
+      "tag": "0010_remove_admin_attendance",
+      "breakpoints": true
     }
   ]
 }

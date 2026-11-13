@@ -1,10 +1,10 @@
 import "server-only";
 
-import { and, asc, eq, gt, inArray, lt } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, lt, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { requireSession } from "@/lib/auth/authorization";
-import type { UserRole } from "@/lib/auth/roles";
+import { USER_ROLE_IDS, type UserRole } from "@/lib/auth/roles";
 import { withDatabaseLogging } from "@/lib/logging/logger";
 
 export function eventVisibility(role: UserRole) {
@@ -54,9 +54,12 @@ export async function getEventsInRange(from: Date, to: Date) {
           .from(eventAttendants)
           .innerJoin(users, eq(eventAttendants.userId, users.id))
           .where(
-            inArray(
-              eventAttendants.eventId,
-              matchingEvents.map(({ id }) => id),
+            and(
+              inArray(
+                eventAttendants.eventId,
+                matchingEvents.map(({ id }) => id),
+              ),
+              ne(users.roleId, USER_ROLE_IDS.Admin),
             ),
           )
           .orderBy(asc(users.name)),

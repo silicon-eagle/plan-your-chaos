@@ -90,6 +90,11 @@ current database role, so changes apply on the next request without signing
 out. Only accounts with the **User** role can be selected as an event organiser.
 Owning an event never gives a Reader permission to edit it.
 
+User and Reader accounts can attend events; Admin accounts cannot. Admins are
+excluded from attendant choices, filters, and displayed attendance. Migration
+`0010_remove_admin_attendance.sql` removes existing Admin attendance links
+without deleting any events or accounts.
+
 The Admin page (`/admin`) lists users. Select a user to open their management
 page (`/admin/[id]`), showing password/authenticator setup status. Create users
 on `/admin/new`. These pages can create User/Reader accounts, rename them, change between those roles,

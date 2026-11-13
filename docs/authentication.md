@@ -544,6 +544,11 @@ visibility predicate: Readers see only events with `hidden = false`; Admin and
 User can see hidden events too. Hidden defaults to false. Read access or event
 ownership never grants mutation access to an Admin or Reader.
 
+Attendance is restricted to User and Reader accounts. Event forms and the
+attendance API reject Admin accounts as attendants, and attendance reads and
+filter choices exclude them. Migration `0010_remove_admin_attendance.sql`
+removes existing Admin attendance links without changing events or accounts.
+
 The same-origin check supplements `SameSite=Lax` cookies and protects
 state-changing API requests from cross-site submission.
 
