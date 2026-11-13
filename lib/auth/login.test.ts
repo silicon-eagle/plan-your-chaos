@@ -63,11 +63,13 @@ vi.mock("./sessions", () => sessionMocks);
 
 import {
   beginLogin,
+  completeTotpLogin,
   beginTotpEnrollment,
   completePasswordSetup,
   completeTotpEnrollment,
 } from "./login";
 import { AUTH_LIMITS } from "./constants";
+import { hashOpaqueToken } from "./tokens";
 
 // ── Mock chain helpers ────────────────────────────────────────────────────
 
@@ -168,6 +170,16 @@ const enrollChallengeWithPendingPassword = {
   pendingPasswordHash: "$new-argon2-hash",
 };
 
+const verifyTotpChallenge = {
+  id: 11,
+  userId: 1,
+  stage: "verify_totp" as const,
+  tokenHash: "verify-totp-token-hash",
+  pendingPasswordHash: null,
+  pendingTotpSecretEncrypted: null,
+  expiresAt: new Date(baseNow.getTime() + AUTH_LIMITS.challengeLifetimeMs),
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   dbMocks.transaction.mockImplementation(async (fn: (tx: typeof dbMocks) => Promise<unknown>) => fn(dbMocks));
@@ -197,7 +209,7 @@ beforeEach(() => {
 
 describe("beginLogin", () => {
   it.each(["Admin", "ADMIN", "AdMiN", "admin"])(
-    "looks up %s with case-insensitive exact equality and authenticates",
+    "looks up %s with case-insensitive exact equality and creates a TOTP challenge",
     async (username) => {
       const where = vi.fn<(condition: SQLWrapper) => unknown>().mockReturnValue({
         limit: async () => [{ ...userWithTotp, name: "Admin" }],
@@ -207,29 +219,32 @@ describe("beginLogin", () => {
       dbMocks.update.mockReturnValue(updateChain());
 
       const result = await beginLogin(
-        { username, password: "correct", totpCode: "123456" }, baseNow,
+        { username, password: "correct" }, baseNow,
       );
 
       const query = new PgDialect().sqlToQuery(where.mock.calls[0][0].getSQL());
       expect(query.sql).toBe('lower("users"."name") = lower($1)');
       expect(query.params).toEqual([username]);
-      expect(result).toEqual({ status: "authenticated" });
-      expect(sessionMocks.createSession).toHaveBeenCalledWith(1, baseNow);
+      expect(result).toEqual({ status: "verify_totp" });
+      expect(challengeMocks.createChallenge).toHaveBeenCalledWith(1, "verify_totp", baseNow);
+      expect(sessionMocks.createSession).not.toHaveBeenCalled();
     },
   );
 
-  it("creates a session for valid password + TOTP", async () => {
+  it("creates a verify_totp challenge after a valid password", async () => {
     dbMocks.select.mockReturnValue(selectReturning([userWithTotp]));
     passwordMocks.verifyPassword.mockResolvedValue(true);
     dbMocks.update.mockReturnValue(updateChain());
 
     const result = await beginLogin(
-      { username: "Alice", password: "correct", totpCode: "123456" },
+      { username: "Alice", password: "correct" },
       baseNow,
     );
 
-    expect(result).toEqual({ status: "authenticated" });
-    expect(sessionMocks.createSession).toHaveBeenCalledWith(1, baseNow);
+    expect(result).toEqual({ status: "verify_totp" });
+    expect(challengeMocks.createChallenge).toHaveBeenCalledWith(1, "verify_totp", baseNow);
+    expect(totpMocks.verifyTotpCode).not.toHaveBeenCalled();
+    expect(sessionMocks.createSession).not.toHaveBeenCalled();
   });
 
   it("clears failure count and persists TOTP counter on successful login", async () => {
@@ -237,24 +252,21 @@ describe("beginLogin", () => {
     dbMocks.select.mockReturnValue(selectReturning([userWith3Failures]));
     passwordMocks.verifyPassword.mockResolvedValue(true);
 
-    let setValues: Record<string, unknown> = {};
-    dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
-
-    await beginLogin(
-      { username: "Alice", password: "correct", totpCode: "123456" },
+    const result = await beginLogin(
+      { username: "Alice", password: "correct" },
       baseNow,
     );
 
-    expect(setValues.failedLoginCount).toBe(0);
-    expect(setValues.lockedUntil).toBeNull();
-    expect(setValues.lastTotpCounter).toBe(200);
+    expect(result).toEqual({ status: "verify_totp" });
+    expect(totpMocks.verifyTotpCode).not.toHaveBeenCalled();
+    expect(sessionMocks.createSession).not.toHaveBeenCalled();
   });
 
   it("returns invalid for a missing user", async () => {
     dbMocks.select.mockReturnValue(selectReturning([]));
 
     const result = await beginLogin(
-      { username: "Unknown", password: "any", totpCode: "" },
+      { username: "Unknown", password: "any" },
       baseNow,
     );
 
@@ -270,7 +282,7 @@ describe("beginLogin", () => {
     dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
 
     const result = await beginLogin(
-      { username: "Alice", password: "wrong", totpCode: "" },
+      { username: "Alice", password: "wrong" },
       baseNow,
     );
 
@@ -294,7 +306,7 @@ describe("beginLogin", () => {
     );
 
     await beginLogin(
-      { username: "Alice", password: "wrong", totpCode: "" },
+      { username: "Alice", password: "wrong" },
       baseNow,
     );
 
@@ -311,27 +323,10 @@ describe("beginLogin", () => {
 
     await expect(
       beginLogin(
-        { username: "Alice", password: "wrong", totpCode: "" },
+        { username: "Alice", password: "wrong" },
         baseNow,
       ),
     ).rejects.toThrow("Could not update failed login count");
-  });
-
-  it("increments the same counter for wrong TOTP", async () => {
-    dbMocks.select.mockReturnValue(selectReturning([userWithTotp]));
-    passwordMocks.verifyPassword.mockResolvedValue(true);
-    totpMocks.verifyTotpCode.mockReturnValue({ valid: false, counter: null });
-
-    let setValues: Record<string, unknown> = {};
-    dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
-
-    const result = await beginLogin(
-      { username: "Alice", password: "correct", totpCode: "000000" },
-      baseNow,
-    );
-
-    expect(result.status).toBe("invalid");
-    expect(setValues.failedLoginCount).toBe(1);
   });
 
   it("locks the account after five consecutive failures", async () => {
@@ -343,7 +338,7 @@ describe("beginLogin", () => {
     dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
 
     await beginLogin(
-      { username: "Alice", password: "wrong", totpCode: "" },
+      { username: "Alice", password: "wrong" },
       baseNow,
     );
 
@@ -361,7 +356,7 @@ describe("beginLogin", () => {
     dbMocks.select.mockReturnValue(selectReturning([lockedUser]));
 
     const result = await beginLogin(
-      { username: "Alice", password: "correct", totpCode: "123456" },
+      { username: "Alice", password: "correct" },
       baseNow,
     );
 
@@ -369,7 +364,7 @@ describe("beginLogin", () => {
     expect(passwordMocks.verifyPassword).not.toHaveBeenCalled();
   });
 
-  it("clears an expired lockout and proceeds with the attempt", async () => {
+  it("clears an expired lockout before creating a TOTP challenge", async () => {
     const expiredLockUser = {
       ...userWithTotp,
       lockedUntil: new Date(baseNow.getTime() - 1),
@@ -377,71 +372,53 @@ describe("beginLogin", () => {
     };
     dbMocks.select.mockReturnValue(selectReturning([expiredLockUser]));
     passwordMocks.verifyPassword.mockResolvedValue(true);
-
-    dbMocks.update
-      .mockReturnValueOnce(updateChain()) // clear lockout
-      .mockReturnValueOnce(updateChain()); // persist counter
+    let values: Record<string, unknown> = {};
+    dbMocks.update.mockReturnValue(updateChain((v) => { values = v; }));
 
     const result = await beginLogin(
-      { username: "Alice", password: "correct", totpCode: "123456" },
+      { username: "Alice", password: "correct" },
       baseNow,
     );
 
-    expect(result).toEqual({ status: "authenticated" });
-    expect(dbMocks.update).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ status: "verify_totp" });
+    expect(values).toEqual({ lockedUntil: null, failedLoginCount: 0 });
   });
 
-  it("rejects replayed TOTP counter and increments failures", async () => {
-    dbMocks.select.mockReturnValue(selectReturning([userWithTotp]));
-    passwordMocks.verifyPassword.mockResolvedValue(true);
-    // counter 100 equals lastTotpCounter 100
-    totpMocks.verifyTotpCode.mockReturnValue({ valid: true, counter: 100 });
-
-    let setValues: Record<string, unknown> = {};
-    dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
-
-    const result = await beginLogin(
-      { username: "Alice", password: "correct", totpCode: "123456" },
-      baseNow,
-    );
-
-    expect(result.status).toBe("invalid");
-    expect(setValues.failedLoginCount).toBe(1);
-  });
-
-  it("creates a set_password challenge for temp password + existing TOTP", async () => {
+  it("requires TOTP first for temp password + existing TOTP", async () => {
     dbMocks.select.mockReturnValue(selectReturning([userTempPasswordWithTotp]));
     passwordMocks.verifyPassword.mockResolvedValue(true);
 
     const result = await beginLogin(
-      { username: "Alice", password: "temp-pass", totpCode: "123456" },
+      { username: "Alice", password: "temp-pass" },
       baseNow,
     );
 
-    expect(result).toEqual({ status: "set_password" });
+    expect(result).toEqual({ status: "verify_totp" });
     expect(challengeMocks.createChallenge).toHaveBeenCalledWith(
       1,
-      "set_password",
+      "verify_totp",
       baseNow,
     );
-    expect(dbMocks.update).toHaveBeenCalled();
+    expect(totpMocks.verifyTotpCode).not.toHaveBeenCalled();
     expect(sessionMocks.createSession).not.toHaveBeenCalled();
   });
 
-  it("rejects a concurrent replay of the accepted TOTP counter", async () => {
-    dbMocks.select.mockReturnValue(selectReturning([userTempPasswordWithTotp]));
-    passwordMocks.verifyPassword.mockResolvedValue(true);
-    dbMocks.update
-      .mockReturnValueOnce(updateReturningChain([]))
-      .mockReturnValueOnce(updateReturningChain([{ id: 1 }]));
+  it("clears an expired lockout and counts a failed password from zero", async () => {
+    const expired = new Date(baseNow.getTime() - 1);
+    dbMocks.select.mockReturnValue(selectReturning([{
+      ...userWithTotp, lockedUntil: expired, failedLoginCount: 3,
+    }]));
+    passwordMocks.verifyPassword.mockResolvedValue(false);
+    const updates: Record<string, unknown>[] = [];
+    dbMocks.update.mockReturnValue(updateChain((v) => { updates.push(v); }));
 
-    const result = await beginLogin(
-      { username: "Alice", password: "temp-pass", totpCode: "123456" },
-      baseNow,
-    );
-
-    expect(result.status).toBe("invalid");
-    expect(challengeMocks.createChallenge).not.toHaveBeenCalled();
+    expect(await beginLogin({ username: "Alice", password: "wrong" }, baseNow)).toEqual({
+      status: "invalid", message: "Invalid credentials.",
+    });
+    expect(updates).toEqual([
+      { lockedUntil: null, failedLoginCount: 0 },
+      { failedLoginCount: 1, lockedUntil: null },
+    ]);
   });
 
   it("creates a set_password challenge for temp password + no TOTP", async () => {
@@ -449,7 +426,7 @@ describe("beginLogin", () => {
     passwordMocks.verifyPassword.mockResolvedValue(true);
 
     const result = await beginLogin(
-      { username: "Alice", password: "temp-pass", totpCode: "" },
+      { username: "Alice", password: "temp-pass" },
       baseNow,
     );
 
@@ -468,7 +445,7 @@ describe("beginLogin", () => {
     passwordMocks.verifyPassword.mockResolvedValue(true);
 
     const result = await beginLogin(
-      { username: "Alice", password: "correct", totpCode: "" },
+      { username: "Alice", password: "correct" },
       baseNow,
     );
 
@@ -486,7 +463,7 @@ describe("beginLogin", () => {
     dbMocks.select.mockReturnValue(selectReturning([noHashUser]));
 
     const result = await beginLogin(
-      { username: "Alice", password: "any", totpCode: "" },
+      { username: "Alice", password: "any" },
       baseNow,
     );
 
@@ -496,13 +473,13 @@ describe("beginLogin", () => {
   it("uses the same generic message for missing user, bad password, and lockout", async () => {
     // Missing user
     dbMocks.select.mockReturnValue(selectReturning([]));
-    const r1 = await beginLogin({ username: "Alice", password: "x", totpCode: "" }, baseNow);
+    const r1 = await beginLogin({ username: "Alice", password: "x" }, baseNow);
 
     // Wrong password
     dbMocks.select.mockReturnValue(selectReturning([userWithTotp]));
     passwordMocks.verifyPassword.mockResolvedValue(false);
     dbMocks.update.mockReturnValue(updateChain());
-    const r2 = await beginLogin({ username: "Alice", password: "wrong", totpCode: "" }, baseNow);
+    const r2 = await beginLogin({ username: "Alice", password: "wrong" }, baseNow);
 
     // Locked
     const lockedUser = {
@@ -510,7 +487,7 @@ describe("beginLogin", () => {
       lockedUntil: new Date(baseNow.getTime() + 60_000),
     };
     dbMocks.select.mockReturnValue(selectReturning([lockedUser]));
-    const r3 = await beginLogin({ username: "Alice", password: "x", totpCode: "" }, baseNow);
+    const r3 = await beginLogin({ username: "Alice", password: "x" }, baseNow);
 
     expect(r1.status).toBe("invalid");
     expect(r2.status).toBe("invalid");
@@ -518,6 +495,303 @@ describe("beginLogin", () => {
     const msg = (r1 as { message: string }).message;
     expect((r2 as { message: string }).message).toBe(msg);
     expect((r3 as { message: string }).message).toBe(msg);
+  });
+});
+
+// ── completeTotpLogin ─────────────────────────────────────────────────────
+
+describe("completeTotpLogin", () => {
+  beforeEach(() => {
+    cookieMocks.getChallengeToken.mockResolvedValue("challenge-token");
+    challengeMocks.findValidChallenge.mockResolvedValue(verifyTotpChallenge);
+    dbMocks.select.mockReturnValue(selectReturning([userWithTotp]));
+    dbMocks.update.mockReturnValue(updateReturningChain([{ id: 1 }]));
+  });
+
+  it("authenticates through a valid verify_totp challenge", async () => {
+    const sets: Record<string, unknown>[] = [];
+    dbMocks.update.mockReturnValue(updateReturningChain([{ id: 1 }], (values) => sets.push(values)));
+
+    const result = await completeTotpLogin("123456", baseNow);
+
+    expect(result).toEqual({ status: "authenticated" });
+    expect(challengeMocks.findValidChallenge).toHaveBeenCalledWith(
+      "challenge-token",
+      "verify_totp",
+      baseNow,
+    );
+    expect(challengeMocks.consumeChallenge).toHaveBeenCalledWith(
+      verifyTotpChallenge,
+      baseNow,
+      dbMocks,
+    );
+    expect(sets).toContainEqual({
+      lastTotpCounter: 200,
+      failedLoginCount: 0,
+      lockedUntil: null,
+    });
+    expect(cookieMocks.clearChallengeCookie).toHaveBeenCalled();
+    expect(sessionMocks.createSession).toHaveBeenCalledWith(1, baseNow);
+  });
+
+    it("rotates the existing challenge to password setup after claiming TOTP", async () => {
+      dbMocks.select.mockReturnValue(selectReturning([userTempPasswordWithTotp]));
+      let claimed: Record<string, unknown> = {};
+      dbMocks.update.mockReturnValue(updateReturningChain([{ id: 1 }], (values) => { claimed = values; }));
+      let committed = false;
+      dbMocks.transaction.mockImplementationOnce(async (fn: (tx: typeof dbMocks) => Promise<unknown>) => {
+        const result = await fn(dbMocks);
+        committed = true;
+        return result;
+      });
+      cookieMocks.setChallengeCookie.mockImplementationOnce(async () => {
+        expect(committed).toBe(true);
+      });
+
+      const result = await completeTotpLogin("123456", baseNow);
+
+      expect(result).toEqual({ status: "set_password" });
+      expect(claimed).toEqual({ lastTotpCounter: 200, failedLoginCount: 0, lockedUntil: null });
+      const [token, expires] = cookieMocks.setChallengeCookie.mock.calls[0];
+      expect(expires).toEqual(new Date(baseNow.getTime() + AUTH_LIMITS.challengeLifetimeMs));
+      expect(challengeMocks.advanceChallenge).toHaveBeenCalledWith(
+        verifyTotpChallenge,
+        { stage: "set_password", tokenHash: hashOpaqueToken(token), expiresAt: expires },
+        baseNow,
+        dbMocks,
+      );
+      expect(token).not.toBe("challenge-token");
+      expect(challengeMocks.consumeChallenge).not.toHaveBeenCalled();
+      expect(sessionMocks.createSession).not.toHaveBeenCalled();
+      expect(cookieMocks.clearChallengeCookie).not.toHaveBeenCalled();
+    });
+
+    it("rolls back the counter when password challenge advancement loses a race", async () => {
+      dbMocks.select.mockReturnValue(selectReturning([userTempPasswordWithTotp]));
+      let committedCounter = 100;
+      dbMocks.transaction.mockImplementationOnce(async (fn: (tx: { update: typeof dbMocks.update }) => Promise<unknown>) => {
+        let candidate = committedCounter;
+        const tx = { update: vi.fn(() => updateReturningChain([{ id: 1 }], (values) => {
+          candidate = values.lastTotpCounter as number;
+        })) };
+        const result = await fn(tx);
+        committedCounter = candidate;
+        return result;
+      });
+      challengeMocks.advanceChallenge.mockResolvedValue(false);
+
+      const result = await completeTotpLogin("123456", baseNow);
+
+      expect(result).toEqual({ status: "invalid", message: "Invalid credentials." });
+      expect(committedCounter).toBe(100);
+      expect(cookieMocks.setChallengeCookie).not.toHaveBeenCalled();
+      expect(sessionMocks.createSession).not.toHaveBeenCalled();
+    });
+
+    it.each([false, true])("guards counter claim against a concurrent future lockout (password setup: %s)", async (mustSetPassword) => {
+      dbMocks.select.mockReturnValue(selectReturning([{ ...userWithTotp, mustSetPassword }]));
+      let condition: SQLWrapper | undefined;
+      dbMocks.update
+        .mockReturnValueOnce(updateReturningChain([], undefined, (c) => { condition = c as SQLWrapper; }))
+        .mockReturnValueOnce(updateReturningChain([]));
+      dbMocks.select.mockReturnValueOnce(selectReturning([{ ...userWithTotp, mustSetPassword }]))
+        .mockReturnValueOnce(selectReturning([{ failedLoginCount: 0, lockedUntil: new Date(baseNow.getTime() + 60_000) }]));
+
+      const result = await completeTotpLogin("123456", baseNow);
+      const query = new PgDialect().sqlToQuery(condition!.getSQL());
+
+      expect(query.sql).toMatch(/"locked_until" is null.*"locked_until" <=/);
+      expect(query.params).toContain(baseNow.toISOString());
+      expect(result).toEqual({ status: "invalid", message: "Invalid credentials." });
+      expect(challengeMocks.advanceChallenge).not.toHaveBeenCalled();
+      expect(challengeMocks.consumeChallenge).not.toHaveBeenCalled();
+      expect(sessionMocks.createSession).not.toHaveBeenCalled();
+    });
+
+    it("clears an expired lockout and counts an invalid TOTP from zero", async () => {
+      const expired = new Date(baseNow.getTime() - 1);
+      dbMocks.select.mockReturnValue(selectReturning([{
+        ...userWithTotp, failedLoginCount: 4, lockedUntil: expired,
+      }]));
+      totpMocks.verifyTotpCode.mockReturnValue({ valid: false, counter: null });
+      const updates: Record<string, unknown>[] = [];
+      dbMocks.update.mockReturnValue(updateChain((v) => { updates.push(v); }));
+
+      expect(await completeTotpLogin("000000", baseNow)).toEqual({
+        status: "invalid", message: "Invalid credentials.",
+      });
+      expect(updates).toEqual([
+        { lockedUntil: null, failedLoginCount: 0 },
+        { failedLoginCount: 1, lockedUntil: null },
+      ]);
+    });
+  it("returns expired for a missing challenge cookie", async () => {
+    cookieMocks.getChallengeToken.mockResolvedValue(undefined);
+
+    const result = await completeTotpLogin("123456", baseNow);
+
+    expect(result).toEqual({
+      status: "expired",
+      message: "Challenge expired or invalid.",
+    });
+    expect(challengeMocks.findValidChallenge).not.toHaveBeenCalled();
+  });
+
+  it("returns expired for an expired or wrong-stage challenge", async () => {
+    challengeMocks.findValidChallenge.mockResolvedValue(null);
+
+    const result = await completeTotpLogin("123456", baseNow);
+
+    expect(result).toEqual({
+      status: "expired",
+      message: "Challenge expired or invalid.",
+    });
+  });
+
+  it("returns invalid when the challenge user no longer exists", async () => {
+    dbMocks.select.mockReturnValue(selectReturning([]));
+
+    const result = await completeTotpLogin("123456", baseNow);
+
+    expect(result).toEqual({
+      status: "expired",
+      message: "Challenge expired or invalid.",
+    });
+  });
+
+  it("increments failures when the account is locked", async () => {
+    dbMocks.select.mockReturnValue(selectReturning([{
+      ...userWithTotp,
+      lockedUntil: new Date(baseNow.getTime() + 60_000),
+    }]));
+
+    const result = await completeTotpLogin("123456", baseNow);
+
+    expect(result).toEqual({ status: "invalid", message: "Invalid credentials." });
+    expect(totpMocks.verifyTotpCode).not.toHaveBeenCalled();
+    expect(challengeMocks.consumeChallenge).not.toHaveBeenCalled();
+  });
+
+  it("increments failures when the account no longer has enrolled TOTP", async () => {
+    dbMocks.select.mockReturnValue(selectReturning([userNoTotp]));
+    dbMocks.update.mockReturnValue(updateChain());
+
+    const result = await completeTotpLogin("123456", baseNow);
+
+    expect(result).toEqual({ status: "invalid", message: "Invalid credentials." });
+    expect(totpMocks.verifyTotpCode).not.toHaveBeenCalled();
+    expect(challengeMocks.consumeChallenge).not.toHaveBeenCalled();
+  });
+
+  it("increments failures for an invalid TOTP without consuming the challenge", async () => {
+    totpMocks.verifyTotpCode.mockReturnValue({ valid: false, counter: null });
+    let failureUpdate: Record<string, unknown> = {};
+    dbMocks.update.mockReturnValue(updateChain((values) => {
+      failureUpdate = values;
+    }));
+
+    const result = await completeTotpLogin("000000", baseNow);
+
+    expect(result).toEqual({ status: "invalid", message: "Invalid credentials." });
+    expect(failureUpdate.failedLoginCount).toBe(1);
+    expect(challengeMocks.consumeChallenge).not.toHaveBeenCalled();
+    expect(sessionMocks.createSession).not.toHaveBeenCalled();
+  });
+
+  it("rejects a replayed counter and increments failures", async () => {
+    totpMocks.verifyTotpCode.mockReturnValue({ valid: true, counter: 100 });
+    let failureUpdate: Record<string, unknown> = {};
+    dbMocks.update.mockReturnValue(updateChain((values) => {
+      failureUpdate = values;
+    }));
+
+    const result = await completeTotpLogin("123456", baseNow);
+
+    expect(result).toEqual({ status: "invalid", message: "Invalid credentials." });
+    expect(failureUpdate.failedLoginCount).toBe(1);
+    expect(challengeMocks.consumeChallenge).not.toHaveBeenCalled();
+  });
+
+  it("rejects a concurrent counter claim and increments failures", async () => {
+    let failureUpdate: Record<string, unknown> = {};
+    dbMocks.update
+      .mockReturnValueOnce(updateReturningChain([]))
+      .mockReturnValueOnce(updateChain((values) => {
+        failureUpdate = values;
+      }));
+
+    const result = await completeTotpLogin("123456", baseNow);
+
+    expect(result).toEqual({ status: "invalid", message: "Invalid credentials." });
+    expect(failureUpdate.failedLoginCount).toBe(1);
+    expect(challengeMocks.consumeChallenge).not.toHaveBeenCalled();
+    expect(sessionMocks.createSession).not.toHaveBeenCalled();
+  });
+
+  it("locks the account after a threshold TOTP failure", async () => {
+    const userWith4Failures = { ...userWithTotp, failedLoginCount: 4 };
+    dbMocks.select.mockReturnValue(selectReturning([userWith4Failures]));
+    totpMocks.verifyTotpCode.mockReturnValue({ valid: false, counter: null });
+    let failureUpdate: Record<string, unknown> = {};
+    dbMocks.update.mockReturnValue(updateChain((values) => {
+      failureUpdate = values;
+    }));
+
+    const result = await completeTotpLogin("000000", baseNow);
+
+    expect(result).toEqual({ status: "invalid", message: "Invalid credentials." });
+    expect(failureUpdate.failedLoginCount).toBe(0);
+    expect(failureUpdate.lockedUntil).toEqual(
+      new Date(baseNow.getTime() + AUTH_LIMITS.lockoutMs),
+    );
+  });
+
+  it("rolls back the counter claim when challenge consumption loses a race", async () => {
+    const committedState = {
+      lastTotpCounter: 100,
+      failedLoginCount: 0,
+    };
+    const operations: string[] = [];
+    dbMocks.transaction.mockImplementationOnce(async (
+      callback: (database: {
+        update: typeof dbMocks.update;
+      }) => Promise<unknown>,
+    ) => {
+      const txState = { ...committedState };
+      const tx = {
+        update: vi.fn(() => updateReturningChain([{ id: 1 }], (values) => {
+          txState.lastTotpCounter = values.lastTotpCounter as number;
+          txState.failedLoginCount = values.failedLoginCount as number;
+          operations.push("counter-claim");
+        })),
+      };
+
+      const result = await callback(tx);
+      committedState.lastTotpCounter = txState.lastTotpCounter;
+      committedState.failedLoginCount = txState.failedLoginCount;
+      operations.push("transaction-commit");
+      return result;
+    });
+    challengeMocks.consumeChallenge.mockResolvedValue(false);
+    let failureUpdate: Record<string, unknown> = {};
+    dbMocks.update.mockImplementation(() => updateChain((values) => {
+      failureUpdate = values;
+      committedState.failedLoginCount = values.failedLoginCount as number;
+      operations.push("failure-update");
+    }));
+
+    const result = await completeTotpLogin("123456", baseNow);
+
+    expect(result).toEqual({ status: "invalid", message: "Invalid credentials." });
+    expect(committedState.lastTotpCounter).toBe(100);
+    expect(committedState.failedLoginCount).toBe(1);
+    expect(operations).toEqual([
+      "counter-claim",
+      "failure-update",
+    ]);
+    expect(failureUpdate.failedLoginCount).toBe(1);
+    expect(sessionMocks.createSession).not.toHaveBeenCalled();
+    expect(cookieMocks.clearChallengeCookie).not.toHaveBeenCalled();
   });
 });
 

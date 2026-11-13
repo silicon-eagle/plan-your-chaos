@@ -1,0 +1,1 @@
+ALTER TYPE "public"."login_challenge_stage" ADD VALUE 'verify_totp';

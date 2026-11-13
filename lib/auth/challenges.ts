@@ -7,10 +7,15 @@ import { AUTH_LIMITS } from "./constants";
 import { setChallengeCookie } from "./cookies";
 import { generateOpaqueToken, hashOpaqueToken } from "./tokens";
 
+export type LoginChallengeStage =
+  | "set_password"
+  | "enroll_totp"
+  | "verify_totp";
+
 export type ValidatedChallenge = {
   id: number;
   userId: number;
-  stage: "set_password" | "enroll_totp";
+  stage: LoginChallengeStage;
   tokenHash: string;
   pendingPasswordHash: string | null;
   pendingTotpSecretEncrypted: string | null;
@@ -34,7 +39,7 @@ function validChallengeWhere(
 
 export async function createChallenge(
   userId: number,
-  stage: "set_password" | "enroll_totp",
+  stage: LoginChallengeStage,
   now = new Date(),
 ): Promise<void> {
   const token = generateOpaqueToken();
@@ -59,7 +64,7 @@ export async function createChallenge(
 
 export async function findValidChallenge(
   token: string,
-  expectedStage: "set_password" | "enroll_totp",
+  expectedStage: LoginChallengeStage,
   now = new Date(),
 ): Promise<ValidatedChallenge | null> {
   const tokenHash = hashOpaqueToken(token);
@@ -118,7 +123,7 @@ export async function advanceChallenge(
   challenge: ValidatedChallenge,
   changes: {
     tokenHash: string;
-    stage: "set_password" | "enroll_totp";
+    stage: LoginChallengeStage;
     expiresAt: Date;
     pendingPasswordHash?: string | null;
   },

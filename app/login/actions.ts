@@ -6,6 +6,7 @@ import {
   beginLogin,
   beginTotpEnrollment,
   completePasswordSetup,
+  completeTotpLogin,
   completeTotpEnrollment,
 } from "@/lib/auth/login";
 import { getSessionToken } from "@/lib/auth/cookies";
@@ -14,7 +15,7 @@ import { logger } from "@/lib/logging/logger";
 
 export type LoginFormState = {
   error?: string;
-  step?: "login" | "set_password" | "enroll_totp";
+  step?: "login" | "verify_totp" | "set_password" | "enroll_totp";
   totpQrDataUrl?: string;
   totpManualSecret?: string;
 };
@@ -31,6 +32,9 @@ export async function loginFlowAction(
   if (action === "set_password") {
     return setPasswordAction(formData);
   }
+  if (action === "verify_totp") {
+    return verifyTotpAction(formData);
+  }
   if (action === "enroll_totp") {
     return enrollTotpAction(prevState, formData);
   }
@@ -42,13 +46,30 @@ export async function loginAction(formData: FormData): Promise<LoginFormState> {
   const usernameValue = formData.get("username");
   const username = typeof usernameValue === "string" ? usernameValue.trim() : "";
   const password = String(formData.get("password") ?? "");
-  const totpCode = String(formData.get("totpCode") ?? "");
 
   if (!username) {
     return { error: "Enter your username." };
   }
 
-  const result = await beginLogin({ username, password, totpCode });
+  const result = await beginLogin({ username, password });
+
+  if (result.status === "set_password") {
+    return { step: "set_password" };
+  }
+  if (result.status === "verify_totp") {
+    return { step: "verify_totp" };
+  }
+  if (result.status === "enroll_totp") {
+    return prepareEnrollTotp();
+  }
+  return { error: result.message };
+}
+
+export async function verifyTotpAction(
+  formData: FormData,
+): Promise<LoginFormState> {
+  const code = String(formData.get("code") ?? "");
+  const result = await completeTotpLogin(code);
 
   if (result.status === "authenticated") {
     redirect("/");
@@ -56,10 +77,10 @@ export async function loginAction(formData: FormData): Promise<LoginFormState> {
   if (result.status === "set_password") {
     return { step: "set_password" };
   }
-  if (result.status === "enroll_totp") {
-    return prepareEnrollTotp();
+  if (result.status === "expired") {
+    return { error: result.message };
   }
-  return { error: result.message };
+  return { step: "verify_totp", error: result.message };
 }
 
 export async function setPasswordAction(

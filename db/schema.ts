@@ -17,6 +17,7 @@ import {
 export const loginChallengeStage = pgEnum("login_challenge_stage", [
   "set_password",
   "enroll_totp",
+  "verify_totp",
 ]);
 
 export const userRoles = pgTable(
