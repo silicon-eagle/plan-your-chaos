@@ -3,20 +3,27 @@ import { describe, expect, it } from "vitest";
 import { UserAvatar } from "./UserAvatar";
 
 describe("UserAvatar", () => {
-  it("renders a pixel avatar image", () => {
-    render(<UserAvatar name="Tim" src="/images/userT.png" />);
+  it("derives the pixel avatar from the first letter", () => {
+    render(<UserAvatar name="Tim" />);
 
     expect(screen.getByRole("img", { name: "Tim avatar" })).toHaveAttribute(
       "src",
-      "/images/userT.png",
+      "/images/avatars/avatar_t.png",
     );
   });
 
-  it("renders the user initial when no image is available", () => {
-    render(<UserAvatar name="Tim" src={null} />);
+  it("uses the actual uppercase W asset filename", () => {
+    render(<UserAvatar name="Wendy" />);
+    expect(screen.getByRole("img", { name: "Wendy avatar" })).toHaveAttribute(
+      "src", "/images/avatars/avatar_W.png",
+    );
+  });
 
-    expect(screen.getByRole("img", { name: "Tim avatar" })).toHaveTextContent(
-      "T",
+  it("renders the user initial when no letter sprite exists", () => {
+    render(<UserAvatar name="123" />);
+
+    expect(screen.getByRole("img", { name: "123 avatar" })).toHaveTextContent(
+      "1",
     );
   });
 });

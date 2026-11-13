@@ -1,10 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState, useRef, useState } from "react";
+import { EventIcon } from "@/components/EventIcon/EventIcon";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
-import type { EventIcon } from "@/lib/events/icons";
+import type { EventIcon as EventIconData } from "@/lib/events/icons";
+import { USER_ROLE_IDS } from "@/lib/auth/roles";
 import type { EventFormState } from "@/app/(authenticated)/events/form-state";
 import styles from "@/app/(authenticated)/events/events.module.css";
 
@@ -13,6 +14,8 @@ type EventFormValues = {
   startsAt: string;
   endsAt: string;
   allDay: boolean;
+  hidden: boolean;
+  userId: number;
   notes: string;
   attendantIds: number[];
   iconId: number;
@@ -27,10 +30,10 @@ type EventFormProps = {
   users: {
     id: number;
     name: string;
-    avatarPath: string | null;
+    roleId: number;
   }[];
   activeUserId: number;
-  icons: EventIcon[];
+  icons: EventIconData[];
   defaultIconId: number;
   initialValues?: EventFormValues;
   submitLabel?: string;
@@ -99,6 +102,10 @@ export function EventForm({
   const endDateTimeRef = useRef<HTMLInputElement>(null);
   const selectedIcon =
     icons.find((icon) => icon.id === selectedIconId) ?? icons[0];
+  const owners = users.filter((user) => user.roleId === USER_ROLE_IDS.User);
+  const attendants = users.filter((user) => user.roleId !== USER_ROLE_IDS.Admin);
+  const initialOwnerId = initialValues?.userId ?? activeUserId;
+  const selectedOwnerExists = owners.some(({ id }) => id === initialOwnerId);
 
   if (!selectedIcon) {
     throw new Error("No event icons are available");
@@ -116,16 +123,28 @@ export function EventForm({
         />
       </label>
 
+      <label className={styles.field}>
+        <span className={styles.label}>Organiser</span>
+        <select
+          className={styles.input}
+          name="userId"
+          defaultValue={selectedOwnerExists ? initialOwnerId : ""}
+          required
+        >
+          <option value="" disabled>Select an organiser</option>
+          {owners.map((user) => (
+            <option value={user.id} key={user.id}>{user.name}</option>
+          ))}
+        </select>
+      </label>
+
       <div className={styles.iconPicker}>
         <span className={styles.label}>Icon</span>
         <div className={styles.iconPickerControls}>
-          <Image
+          <EventIcon
             className={styles.eventIcon}
-            src={`/icons/yellow/${selectedIcon.fileName}-yellow.png`}
-            alt={`${selectedIcon.name} icon`}
-            width={16}
-            height={16}
-            unoptimized
+            fileName={selectedIcon.fileName}
+            label={`${selectedIcon.name} icon`}
           />
           <PixelButton
             className={styles.iconSelectButton}
@@ -162,13 +181,9 @@ export function EventForm({
                 }}
                 key={icon.id}
               >
-                <Image
+                <EventIcon
                   className={styles.eventIcon}
-                  src={`/icons/yellow/${icon.fileName}-yellow.png`}
-                  alt=""
-                  width={16}
-                  height={16}
-                  unoptimized
+                  fileName={icon.fileName}
                 />
               </button>
             ))}
@@ -208,6 +223,15 @@ export function EventForm({
         <span>All day</span>
       </label>
 
+      <label className={styles.checkbox}>
+        <input
+          type="checkbox"
+          name="hidden"
+          defaultChecked={initialValues?.hidden}
+        />
+        <span>Hidden from readers</span>
+      </label>
+
       <label className={styles.field}>
         <span className={styles.label}>Notes</span>
         <textarea
@@ -220,7 +244,7 @@ export function EventForm({
       <fieldset className={styles.attendants}>
         <legend className={styles.label}>Attendants</legend>
         <div className={styles.attendantList}>
-          {users.map((user) => (
+          {attendants.map((user) => (
             <label className={styles.attendant} key={user.id}>
               <input
                 type="checkbox"
@@ -234,7 +258,6 @@ export function EventForm({
               />
               <UserAvatar
                 name={user.name}
-                src={user.avatarPath}
                 decorative
               />
               <span>{user.name}</span>

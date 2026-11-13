@@ -31,7 +31,7 @@ import { DELETE, PATCH } from "./route";
 
 const baseSession = {
   id: 1,
-  user: { id: 1, name: "Alice", avatarPath: null },
+  user: { id: 1, name: "Alice", role: "User" },
   createdAt: new Date(),
   lastActiveAt: new Date(),
   idleExpiresAt: new Date(),
@@ -137,8 +137,15 @@ describe("PATCH /api/events/:id", () => {
     expect(database.update).not.toHaveBeenCalled();
   });
 
-  it("rejects attempts to change the event userId", async () => {
+  it("rejects transferring ownership to an ineligible account", async () => {
     authMocks.getSession.mockResolvedValue(baseSession);
+    database.select
+      .mockReturnValueOnce(mockEventLookup([{
+        id: 12,
+        startsAt: new Date("2026-07-22T18:00:00.000Z"),
+        endsAt: new Date("2026-07-22T19:00:00.000Z"),
+      }]))
+      .mockReturnValueOnce(mockEventLookup([]));
 
     const response = await PATCH(
       new Request("http://localhost/api/events/12", {
@@ -151,10 +158,35 @@ describe("PATCH /api/events/:id", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: "userId cannot be changed",
+      error: "userId must reference an account with the User role",
     });
-    expect(database.select).not.toHaveBeenCalled();
     expect(database.update).not.toHaveBeenCalled();
+  });
+
+  it("transfers ownership to a User and changes hidden visibility", async () => {
+    authMocks.getSession.mockResolvedValue(baseSession);
+    database.select
+      .mockReturnValueOnce(mockEventLookup([{
+        id: 12,
+        startsAt: new Date("2026-07-22T18:00:00.000Z"),
+        endsAt: new Date("2026-07-22T19:00:00.000Z"),
+      }]))
+      .mockReturnValueOnce(mockEventLookup([{ id: 2 }]));
+    const set = vi.fn(() => ({
+      where: vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([{ id: 12, userId: 2, hidden: true }]),
+      })),
+    }));
+    database.update.mockReturnValue({ set });
+    const response = await PATCH(
+      new Request("http://localhost/api/events/12", {
+        method: "PATCH",
+        body: JSON.stringify({ userId: 2, hidden: true }),
+      }),
+      { params: Promise.resolve({ id: "12" }) },
+    );
+    expect(response.status).toBe(200);
+    expect(set).toHaveBeenCalledWith({ userId: 2, hidden: true, updatedAt: expect.any(Date) });
   });
 
   it("returns 404 when the event disappears during the update", async () => {

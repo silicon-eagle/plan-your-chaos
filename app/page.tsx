@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth/authorization";
+import { canEditEvents } from "@/lib/auth/roles";
 import { AuthenticatedShell } from "@/components/AuthenticatedShell";
 import { HomeDashboard } from "@/components/HomeDashboard";
 import { PixelButton } from "@/components/PixelButton/PixelButton";
@@ -17,7 +18,7 @@ export default async function Home() {
 
   return (
     <AuthenticatedShell session={session}>
-      <HomeDashboard />
+      <HomeDashboard canEdit={canEditEvents(session.user.role)} />
     </AuthenticatedShell>
   );
 }

@@ -1,8 +1,18 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { getTotpEncryptionKey } from "./config";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { getAuthCookieSecure, getTotpEncryptionKey } from "./config";
 
 afterEach(() => {
   delete process.env.TOTP_ENCRYPTION_KEY;
+  vi.unstubAllEnvs();
+});
+
+describe("getAuthCookieSecure", () => {
+  it("rejects an invalid override instead of silently choosing a cookie policy", () => {
+    vi.stubEnv("AUTH_COOKIE_SECURE", "not-a-boolean");
+    expect(() => getAuthCookieSecure()).toThrow(
+      "AUTH_COOKIE_SECURE must be true or false",
+    );
+  });
 });
 
 describe("getTotpEncryptionKey", () => {

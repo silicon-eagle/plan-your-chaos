@@ -2,11 +2,12 @@ import "server-only";
 
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { sessions, users } from "@/db/schema";
+import { sessions, users, userRoles } from "@/db/schema";
 import { AUTH_LIMITS } from "./constants";
 import { clearSessionCookie, setSessionCookie } from "./cookies";
 import { UserNotFoundError } from "./errors";
 import { generateOpaqueToken, hashOpaqueToken } from "./tokens";
+import type { UserRole } from "./roles";
 
 type SessionDatabase = Pick<typeof db, "update">;
 
@@ -15,7 +16,7 @@ export type AuthenticatedSession = {
   user: {
     id: number;
     name: string;
-    avatarPath: string | null;
+    role: UserRole;
   };
   createdAt: Date;
   lastActiveAt: Date;
@@ -35,8 +36,9 @@ export async function createSession(
   );
 
   const [user] = await db
-    .select({ id: users.id, name: users.name, avatarPath: users.avatarPath })
+    .select({ id: users.id, name: users.name, role: userRoles.name })
     .from(users)
+    .innerJoin(userRoles, eq(users.roleId, userRoles.id))
     .where(eq(users.id, userId))
     .limit(1);
 
@@ -92,11 +94,12 @@ export async function findSessionByToken(
       user: {
         id: users.id,
         name: users.name,
-        avatarPath: users.avatarPath,
+        role: userRoles.name,
       },
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
+    .innerJoin(userRoles, eq(users.roleId, userRoles.id))
     .where(eq(sessions.tokenHash, tokenHash))
     .limit(1);
 

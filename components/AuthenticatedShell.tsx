@@ -12,7 +12,7 @@ export function AuthenticatedShell({ session, children }: Props) {
     <>
       <Header
         activeUserName={session.user.name}
-        activeUserAvatarPath={session.user.avatarPath}
+        role={session.user.role}
       />
       {children}
       <footer className="site-footer">

@@ -11,7 +11,6 @@ async function getUsers() {
     .select({
       id: users.id,
       name: users.name,
-      avatarPath: users.avatarPath,
       createdAt: users.createdAt,
     })
     .from(users)

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CalendarNewButton } from "@/components/Calendar/CalendarNewButton";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
+import { EventIcon } from "@/components/EventIcon/EventIcon";
 import { daysDiff } from "@/lib/calendar/utils";
 import styles from "./EventList.module.css";
 
@@ -22,7 +23,6 @@ export type EventListItem = {
   attendants: {
     id: number;
     name: string;
-    avatarPath: string | null;
   }[];
 };
 
@@ -212,13 +212,11 @@ export function EventListClient({
 
                     <span className={styles.iconFrame}>
                       {event.icon && (
-                        <Image
+                        <EventIcon
                           className={styles.icon}
-                          src={`/icons/${colour}/${event.icon.fileName}-${colour}.png`}
-                          alt={`${event.icon.name} icon`}
-                          width={16}
-                          height={16}
-                          unoptimized
+                          fileName={event.icon.fileName}
+                          colour={colour}
+                          label={`${event.icon.name} icon`}
                         />
                       )}
                     </span>
@@ -238,7 +236,6 @@ export function EventListClient({
                         <span className={styles.attendant} key={attendant.id}>
                           <UserAvatar
                             name={attendant.name}
-                            src={attendant.avatarPath}
                           />
                           <span>{attendant.name}</span>
                         </span>

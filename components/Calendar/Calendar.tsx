@@ -16,6 +16,7 @@ import styles from "./Calendar.module.css";
 
 type CalendarProps = {
   initialDate?: Date;
+  canEdit?: boolean;
 };
 
 type CalendarEventRange = {
@@ -44,7 +45,10 @@ function getEventMarker(attendantNames: string[]): CalendarEventMarker {
   return "default";
 }
 
-export function Calendar({ initialDate = new Date() }: CalendarProps) {
+export function Calendar({
+  initialDate = new Date(),
+  canEdit = false,
+}: CalendarProps) {
   const [visibleMonth, setVisibleMonth] = useState(
     () => new Date(initialDate.getFullYear(), initialDate.getMonth(), 1),
   );
@@ -203,7 +207,7 @@ export function Calendar({ initialDate = new Date() }: CalendarProps) {
         <h2 id="calendar-heading">{getMonthLabel(visibleMonth)}</h2>
 
         <div className={styles.headerActions}>
-          <CalendarNewButton />
+          {canEdit && <CalendarNewButton />}
           <CalendarNavButton
             direction="next"
             onClick={() => changeMonth(1)}

@@ -1,11 +1,13 @@
-import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
-import Image from "next/image";
+import { and, asc, desc, eq, gt, lt, ne, or } from "drizzle-orm";
+import { EventIcon } from "@/components/EventIcon/EventIcon";
 import { notFound } from "next/navigation";
 import { UserAvatar } from "@/components/UserAvatar/UserAvatar";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { parsePositiveInteger } from "@/app/api/events/validation";
 import { requirePageSession } from "@/lib/auth/authorization";
+import { canEditEvents, USER_ROLE_IDS, type UserRole } from "@/lib/auth/roles";
+import { eventVisibility } from "@/lib/events/queries";
 import { EventActions } from "./EventActions";
 import styles from "../events.module.css";
 
@@ -19,14 +21,17 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
   timeStyle: "short",
 });
 
-async function getNextEvent(eventId: number, startsAt: Date) {
+async function getNextEvent(eventId: number, startsAt: Date, role: UserRole) {
   const [event] = await db
     .select({ id: events.id })
     .from(events)
     .where(
-      or(
-        gt(events.startsAt, startsAt),
-        and(eq(events.startsAt, startsAt), gt(events.id, eventId)),
+      and(
+        eventVisibility(role),
+        or(
+          gt(events.startsAt, startsAt),
+          and(eq(events.startsAt, startsAt), gt(events.id, eventId)),
+        ),
       ),
     )
     .orderBy(asc(events.startsAt), asc(events.id))
@@ -35,14 +40,17 @@ async function getNextEvent(eventId: number, startsAt: Date) {
   return event?.id ?? null;
 }
 
-async function getPrevEvent(eventId: number, startsAt: Date) {
+async function getPrevEvent(eventId: number, startsAt: Date, role: UserRole) {
   const [event] = await db
     .select({ id: events.id })
     .from(events)
     .where(
-      or(
-        lt(events.startsAt, startsAt),
-        and(eq(events.startsAt, startsAt), lt(events.id, eventId)),
+      and(
+        eventVisibility(role),
+        or(
+          lt(events.startsAt, startsAt),
+          and(eq(events.startsAt, startsAt), lt(events.id, eventId)),
+        ),
       ),
     )
     .orderBy(desc(events.startsAt), desc(events.id))
@@ -59,7 +67,7 @@ export default async function EventPage({ params }: EventPageProps) {
     notFound();
   }
 
-  await requirePageSession();
+  const session = await requirePageSession();
 
   const [event] = await db
     .select({
@@ -68,6 +76,7 @@ export default async function EventPage({ params }: EventPageProps) {
       startsAt: events.startsAt,
       endsAt: events.endsAt,
       allDay: events.allDay,
+      hidden: events.hidden,
       notes: events.notes,
       ownerName: users.name,
       iconName: icons.name,
@@ -76,7 +85,7 @@ export default async function EventPage({ params }: EventPageProps) {
     .from(events)
     .innerJoin(users, eq(events.userId, users.id))
     .leftJoin(icons, eq(events.iconId, icons.id))
-    .where(eq(events.id, eventId))
+    .where(and(eq(events.id, eventId), eventVisibility(session.user.role)))
     .limit(1);
 
   if (!event) {
@@ -88,14 +97,16 @@ export default async function EventPage({ params }: EventPageProps) {
       .select({
         id: users.id,
         name: users.name,
-        avatarPath: users.avatarPath,
       })
       .from(eventAttendants)
       .innerJoin(users, eq(eventAttendants.userId, users.id))
-      .where(eq(eventAttendants.eventId, event.id))
+      .where(and(
+        eq(eventAttendants.eventId, event.id),
+        ne(users.roleId, USER_ROLE_IDS.Admin),
+      ))
       .orderBy(asc(users.name)),
-    getPrevEvent(event.id, event.startsAt),
-    getNextEvent(event.id, event.startsAt),
+    getPrevEvent(event.id, event.startsAt, session.user.role),
+    getNextEvent(event.id, event.startsAt, session.user.role),
   ]);
 
   return (
@@ -108,16 +119,14 @@ export default async function EventPage({ params }: EventPageProps) {
           eventId={event.id}
           previousEventId={previousEventId}
           nextEventId={nextEventId}
+          canEdit={canEditEvents(session.user.role)}
         />
         <div className={styles.eventHeading}>
           {event.iconFileName && (
-            <Image
+            <EventIcon
               className={styles.eventIcon}
-              src={`/icons/yellow/${event.iconFileName}-yellow.png`}
-              alt={event.iconName ? `${event.iconName} icon` : ""}
-              width={16}
-              height={16}
-              unoptimized
+              fileName={event.iconFileName}
+              label={event.iconName ? `${event.iconName} icon` : undefined}
             />
           )}
           <h1 id="event-heading">{event.title}</h1>
@@ -148,6 +157,12 @@ export default async function EventPage({ params }: EventPageProps) {
             <dt>All day</dt>
             <dd>{event.allDay ? "Yes" : "No"}</dd>
           </div>
+          {event.hidden && (
+            <div>
+              <dt>Visibility</dt>
+              <dd>Hidden from readers</dd>
+            </div>
+          )}
         </dl>
 
         <section aria-labelledby="attendants-heading">
@@ -158,7 +173,6 @@ export default async function EventPage({ params }: EventPageProps) {
                 <li className={styles.attendant} key={attendant.id}>
                   <UserAvatar
                     name={attendant.name}
-                    src={attendant.avatarPath}
                     decorative
                   />
                   <span>{attendant.name}</span>

@@ -39,6 +39,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       TZ: Europe/Amsterdam
       TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?TOTP_ENCRYPTION_KEY is required}
+      INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +58,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       TZ: Europe/Amsterdam
       TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?TOTP_ENCRYPTION_KEY is required}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
     ports:
       - "${APP_PORT:-3000}:3000"
     depends_on:

@@ -6,6 +6,7 @@ import {
   parseDateKey,
 } from "@/lib/calendar/utils";
 import { requirePageSession } from "@/lib/auth/authorization";
+import { canEditEvents } from "@/lib/auth/roles";
 import { DayNavigation } from "./DayNavigation";
 import styles from "./page.module.css";
 
@@ -21,12 +22,12 @@ export default async function DayPage({ params }: DayPageProps) {
     notFound();
   }
 
-  await requirePageSession();
+  const session = await requirePageSession();
 
   return (
     <main className={styles.page}>
       <section className={styles.content}>
-        <DayNavigation date={date} />
+        <DayNavigation date={date} canEdit={canEditEvents(session.user.role)} />
         <h2>{getDateLabel(date)}</h2>
         <EventList from={date} to={addDays(date, 1)} />
       </section>

@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth/authorization", () => ({
-  requirePageSession: mocks.requirePageSession,
+  requirePageRole: mocks.requirePageSession,
 }));
 vi.mock("@/db", () => ({
   db: { select: mocks.select },

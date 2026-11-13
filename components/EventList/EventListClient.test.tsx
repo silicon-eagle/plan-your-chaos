@@ -15,7 +15,7 @@ const events: EventListItem[] = [
     allDay: false,
     icon: { id: 1, name: "Cat", fileName: "cat" },
     attendants: [
-      { id: 1, name: "Tim", avatarPath: "/images/userT.png" },
+      { id: 1, name: "Tim" },
     ],
   },
   {
@@ -26,7 +26,7 @@ const events: EventListItem[] = [
     allDay: false,
     icon: { id: 2, name: "Music", fileName: "music" },
     attendants: [
-      { id: 2, name: "Veerle", avatarPath: "/images/userV.png" },
+      { id: 2, name: "Veerle" },
     ],
   },
 ];
@@ -44,13 +44,15 @@ describe("EventListClient", () => {
     );
 
     expect(screen.getByRole("img", { name: "Cat icon" })).toHaveAttribute(
-      "src",
+      "style",
       expect.stringContaining("/icons/yellow/cat-yellow.png"),
     );
     expect(screen.getByRole("img", { name: "Music icon" })).toHaveAttribute(
-      "src",
-      expect.stringContaining("/icons/purple/music-purple.png"),
+      "style",
+      expect.stringContaining("/icons/yellow/music-yellow.png"),
     );
+    expect(screen.getByRole("img", { name: "Cat icon" })).toHaveStyle({ backgroundColor: "#F2C900" });
+    expect(screen.getByRole("img", { name: "Music icon" })).toHaveStyle({ backgroundColor: "#4B2E83" });
   });
 
   describe("getEventStatus", () => {

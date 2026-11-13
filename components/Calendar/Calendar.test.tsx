@@ -31,6 +31,17 @@ afterEach(() => {
 });
 
 describe("Calendar", () => {
+  it("omits event creation for readers", () => {
+    render(<Calendar initialDate={new Date(2026, 0, 15)} canEdit={false} />);
+    expect(screen.queryByRole("link", { name: "Create event" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next month" })).toBeInTheDocument();
+  });
+
+  it("offers event creation to editors", () => {
+    render(<Calendar initialDate={new Date(2026, 0, 15)} canEdit />);
+    expect(screen.getByRole("link", { name: "Create event" })).toHaveAttribute("href", "/events/new");
+  });
+
   it("shows the initial month and navigates across year boundaries", () => {
     render(<Calendar initialDate={new Date(2026, 0, 15)} />);
 

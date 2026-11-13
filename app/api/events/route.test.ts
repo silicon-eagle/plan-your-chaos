@@ -35,7 +35,7 @@ import { GET, POST } from "./route";
 
 const baseSession = {
   id: 1,
-  user: { id: 1, name: "Alice", avatarPath: null },
+  user: { id: 1, name: "Alice", role: "User" },
   createdAt: new Date(),
   lastActiveAt: new Date(),
   idleExpiresAt: new Date(),
@@ -172,6 +172,11 @@ describe("POST /api/events", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     database.select
       .mockReturnValueOnce({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ id: 1 }]) })),
+        })),
+      })
+      .mockReturnValueOnce({
         from: vi.fn().mockResolvedValue([{ id: 4 }, { id: 7 }]),
       });
 
@@ -205,7 +210,7 @@ describe("POST /api/events", () => {
     );
   });
 
-  it("ignores supplied body userId and uses the authenticated user as owner", async () => {
+  it("uses a supplied User account as owner and saves hidden visibility", async () => {
     authMocks.getSession.mockResolvedValue(baseSession);
     vi.spyOn(Math, "random").mockReturnValue(0);
 
@@ -235,13 +240,14 @@ describe("POST /api/events", () => {
           startsAt: "2026-07-22T18:00:00.000Z",
           endsAt: "2026-07-22T19:00:00.000Z",
           userId: 99,
+          hidden: true,
         }),
       }),
     );
 
     expect(response.status).toBe(201);
     expect(values).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: baseSession.user.id }),
+      expect.objectContaining({ userId: 99, hidden: true }),
     );
   });
 });

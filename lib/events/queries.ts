@@ -1,13 +1,20 @@
 import "server-only";
 
-import { and, asc, eq, gt, inArray, lt } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, lt, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { requireSession } from "@/lib/auth/authorization";
+import { USER_ROLE_IDS, type UserRole } from "@/lib/auth/roles";
 import { withDatabaseLogging } from "@/lib/logging/logger";
 
+export function eventVisibility(role: UserRole) {
+  return role === "Admin" || role === "User"
+    ? undefined
+    : eq(events.hidden, false);
+}
+
 export async function getEventsInRange(from: Date, to: Date) {
-  await requireSession();
+  const session = await requireSession();
 
   return withDatabaseLogging(
     "events.list",
@@ -16,7 +23,13 @@ export async function getEventsInRange(from: Date, to: Date) {
       const matchingEvents = await db
         .select()
         .from(events)
-        .where(and(lt(events.startsAt, to), gt(events.endsAt, from)))
+        .where(
+          and(
+            lt(events.startsAt, to),
+            gt(events.endsAt, from),
+            eventVisibility(session.user.role),
+          ),
+        )
         .orderBy(asc(events.startsAt));
 
       if (matchingEvents.length === 0) {
@@ -36,15 +49,17 @@ export async function getEventsInRange(from: Date, to: Date) {
             eventId: eventAttendants.eventId,
             id: users.id,
             name: users.name,
-            avatarPath: users.avatarPath,
             createdAt: users.createdAt,
           })
           .from(eventAttendants)
           .innerJoin(users, eq(eventAttendants.userId, users.id))
           .where(
-            inArray(
-              eventAttendants.eventId,
-              matchingEvents.map(({ id }) => id),
+            and(
+              inArray(
+                eventAttendants.eventId,
+                matchingEvents.map(({ id }) => id),
+              ),
+              ne(users.roleId, USER_ROLE_IDS.Admin),
             ),
           )
           .orderBy(asc(users.name)),
@@ -65,10 +80,9 @@ export async function getEventsInRange(from: Date, to: Date) {
         icon: iconRows.find(({ id }) => id === event.iconId) ?? null,
         attendants: attendanceRows
           .filter(({ eventId }) => eventId === event.id)
-          .map(({ id, name, avatarPath, createdAt }) => ({
+          .map(({ id, name, createdAt }) => ({
             id,
             name,
-            avatarPath,
             createdAt,
           })),
       }));

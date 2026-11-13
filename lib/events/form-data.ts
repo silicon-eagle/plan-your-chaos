@@ -3,6 +3,8 @@ export type EventFormData = {
   startsAt: Date;
   endsAt: Date;
   allDay: boolean;
+  hidden: boolean;
+  userId: number;
   notes: string | null;
   attendantIds: number[];
   iconId: FormDataEntryValue | null;
@@ -24,6 +26,7 @@ export function parseEventFormData(
   const startsAt = new Date(getString(formData, "startsAt"));
   const endsAt = new Date(getString(formData, "endsAt"));
   const notes = getString(formData, "notes") || null;
+  const userId = Number(getString(formData, "userId"));
   const attendantIds = formData
     .getAll("attendantIds")
     .map((value) => Number(value));
@@ -43,12 +46,18 @@ export function parseEventFormData(
     return { error: "The event must end after it starts." };
   }
 
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return { error: "Select a valid organiser." };
+  }
+
   return {
     data: {
       title,
       startsAt,
       endsAt,
       allDay: formData.get("allDay") === "on",
+      hidden: formData.get("hidden") === "on",
+      userId,
       notes,
       attendantIds: [...new Set(attendantIds)],
       iconId: formData.get("iconId"),

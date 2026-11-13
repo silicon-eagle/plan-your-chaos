@@ -1,0 +1,10 @@
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: calc(16px * var(--pixel-art-scale));
+  height: calc(16px * var(--pixel-art-scale));
+  mask-size: 100% 100%;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  image-rendering: pixelated;
+}

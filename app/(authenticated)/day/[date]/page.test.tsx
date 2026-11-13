@@ -21,7 +21,7 @@ describe("DayPage", () => {
     vi.clearAllMocks();
     mocks.requirePageSession.mockResolvedValue({
       id: 1,
-      user: { id: 1, name: "Alice", avatarPath: null },
+      user: { id: 1, name: "Alice", role: "User" },
       createdAt: new Date(),
       lastActiveAt: new Date(),
       idleExpiresAt: new Date(),

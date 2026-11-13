@@ -5,20 +5,19 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { events } from "@/db/schema";
 import { parsePositiveInteger } from "@/app/api/events/validation";
-import { requireSession } from "@/lib/auth/authorization";
+import { requireRole } from "@/lib/auth/authorization";
 import {
   logger,
   withDatabaseLogging,
 } from "@/lib/logging/logger";
 
 export async function deleteEvent(formData: FormData) {
+  await requireRole(["User"]);
   const eventId = parsePositiveInteger(formData.get("eventId"));
 
   if (!eventId) {
     throw new Error("A valid event ID is required");
   }
-
-  await requireSession();
 
   const [deletedEvent] = await withDatabaseLogging(
     "event.delete",

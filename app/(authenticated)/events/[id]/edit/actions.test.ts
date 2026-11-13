@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth/authorization", () => ({
-  requireSession: mocks.requireSession,
+  requireRole: mocks.requireSession,
 }));
 vi.mock("@/db", () => ({
   db: {
@@ -22,7 +22,7 @@ vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 import { updateEvent } from "./actions";
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
 });
 
 describe("updateEvent", () => {
@@ -48,6 +48,11 @@ describe("updateEvent", () => {
     mocks.select
       .mockReturnValueOnce({
         from: vi.fn(() => ({
+          where: vi.fn(() => ({ limit: vi.fn().mockResolvedValue([{ id: 2 }]) })),
+        })),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn(() => ({
           where: vi.fn().mockResolvedValue([{ id: 2 }]),
         })),
       })
@@ -71,6 +76,8 @@ describe("updateEvent", () => {
 
     const formData = new FormData();
     formData.set("title", "Updated dinner");
+    formData.set("userId", "2");
+    formData.set("hidden", "on");
     formData.set("startsAt", "2026-07-24T18:00");
     formData.set("endsAt", "2026-07-24T19:00");
     formData.set("iconId", "5");
@@ -81,6 +88,8 @@ describe("updateEvent", () => {
     expect(set).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Updated dinner",
+        userId: 2,
+        hidden: true,
         iconId: 5,
       }),
     );

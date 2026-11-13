@@ -118,7 +118,7 @@ const userWithTotp = {
   lastTotpCounter: 100,
   failedLoginCount: 0,
   lockedUntil: null,
-  avatarPath: null,
+  roleId: 2,
   createdAt: baseNow,
 };
 
@@ -196,13 +196,35 @@ beforeEach(() => {
 // ── beginLogin ────────────────────────────────────────────────────────────
 
 describe("beginLogin", () => {
+  it.each(["Admin", "ADMIN", "AdMiN", "admin"])(
+    "looks up %s with case-insensitive exact equality and authenticates",
+    async (username) => {
+      const where = vi.fn<(condition: SQLWrapper) => unknown>().mockReturnValue({
+        limit: async () => [{ ...userWithTotp, name: "Admin" }],
+      });
+      dbMocks.select.mockReturnValue({ from: () => ({ where }) });
+      passwordMocks.verifyPassword.mockResolvedValue(true);
+      dbMocks.update.mockReturnValue(updateChain());
+
+      const result = await beginLogin(
+        { username, password: "correct", totpCode: "123456" }, baseNow,
+      );
+
+      const query = new PgDialect().sqlToQuery(where.mock.calls[0][0].getSQL());
+      expect(query.sql).toBe('lower("users"."name") = lower($1)');
+      expect(query.params).toEqual([username]);
+      expect(result).toEqual({ status: "authenticated" });
+      expect(sessionMocks.createSession).toHaveBeenCalledWith(1, baseNow);
+    },
+  );
+
   it("creates a session for valid password + TOTP", async () => {
     dbMocks.select.mockReturnValue(selectReturning([userWithTotp]));
     passwordMocks.verifyPassword.mockResolvedValue(true);
     dbMocks.update.mockReturnValue(updateChain());
 
     const result = await beginLogin(
-      { userId: 1, password: "correct", totpCode: "123456" },
+      { username: "Alice", password: "correct", totpCode: "123456" },
       baseNow,
     );
 
@@ -219,7 +241,7 @@ describe("beginLogin", () => {
     dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
 
     await beginLogin(
-      { userId: 1, password: "correct", totpCode: "123456" },
+      { username: "Alice", password: "correct", totpCode: "123456" },
       baseNow,
     );
 
@@ -232,7 +254,7 @@ describe("beginLogin", () => {
     dbMocks.select.mockReturnValue(selectReturning([]));
 
     const result = await beginLogin(
-      { userId: 999, password: "any", totpCode: "" },
+      { username: "Unknown", password: "any", totpCode: "" },
       baseNow,
     );
 
@@ -248,7 +270,7 @@ describe("beginLogin", () => {
     dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
 
     const result = await beginLogin(
-      { userId: 1, password: "wrong", totpCode: "" },
+      { username: "Alice", password: "wrong", totpCode: "" },
       baseNow,
     );
 
@@ -272,7 +294,7 @@ describe("beginLogin", () => {
     );
 
     await beginLogin(
-      { userId: 1, password: "wrong", totpCode: "" },
+      { username: "Alice", password: "wrong", totpCode: "" },
       baseNow,
     );
 
@@ -289,7 +311,7 @@ describe("beginLogin", () => {
 
     await expect(
       beginLogin(
-        { userId: 1, password: "wrong", totpCode: "" },
+        { username: "Alice", password: "wrong", totpCode: "" },
         baseNow,
       ),
     ).rejects.toThrow("Could not update failed login count");
@@ -304,7 +326,7 @@ describe("beginLogin", () => {
     dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
 
     const result = await beginLogin(
-      { userId: 1, password: "correct", totpCode: "000000" },
+      { username: "Alice", password: "correct", totpCode: "000000" },
       baseNow,
     );
 
@@ -321,7 +343,7 @@ describe("beginLogin", () => {
     dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
 
     await beginLogin(
-      { userId: 1, password: "wrong", totpCode: "" },
+      { username: "Alice", password: "wrong", totpCode: "" },
       baseNow,
     );
 
@@ -339,7 +361,7 @@ describe("beginLogin", () => {
     dbMocks.select.mockReturnValue(selectReturning([lockedUser]));
 
     const result = await beginLogin(
-      { userId: 1, password: "correct", totpCode: "123456" },
+      { username: "Alice", password: "correct", totpCode: "123456" },
       baseNow,
     );
 
@@ -361,7 +383,7 @@ describe("beginLogin", () => {
       .mockReturnValueOnce(updateChain()); // persist counter
 
     const result = await beginLogin(
-      { userId: 1, password: "correct", totpCode: "123456" },
+      { username: "Alice", password: "correct", totpCode: "123456" },
       baseNow,
     );
 
@@ -379,7 +401,7 @@ describe("beginLogin", () => {
     dbMocks.update.mockReturnValue(updateChain((v) => { setValues = v; }));
 
     const result = await beginLogin(
-      { userId: 1, password: "correct", totpCode: "123456" },
+      { username: "Alice", password: "correct", totpCode: "123456" },
       baseNow,
     );
 
@@ -392,7 +414,7 @@ describe("beginLogin", () => {
     passwordMocks.verifyPassword.mockResolvedValue(true);
 
     const result = await beginLogin(
-      { userId: 1, password: "temp-pass", totpCode: "123456" },
+      { username: "Alice", password: "temp-pass", totpCode: "123456" },
       baseNow,
     );
 
@@ -414,7 +436,7 @@ describe("beginLogin", () => {
       .mockReturnValueOnce(updateReturningChain([{ id: 1 }]));
 
     const result = await beginLogin(
-      { userId: 1, password: "temp-pass", totpCode: "123456" },
+      { username: "Alice", password: "temp-pass", totpCode: "123456" },
       baseNow,
     );
 
@@ -427,7 +449,7 @@ describe("beginLogin", () => {
     passwordMocks.verifyPassword.mockResolvedValue(true);
 
     const result = await beginLogin(
-      { userId: 1, password: "temp-pass", totpCode: "" },
+      { username: "Alice", password: "temp-pass", totpCode: "" },
       baseNow,
     );
 
@@ -446,7 +468,7 @@ describe("beginLogin", () => {
     passwordMocks.verifyPassword.mockResolvedValue(true);
 
     const result = await beginLogin(
-      { userId: 1, password: "correct", totpCode: "" },
+      { username: "Alice", password: "correct", totpCode: "" },
       baseNow,
     );
 
@@ -464,7 +486,7 @@ describe("beginLogin", () => {
     dbMocks.select.mockReturnValue(selectReturning([noHashUser]));
 
     const result = await beginLogin(
-      { userId: 1, password: "any", totpCode: "" },
+      { username: "Alice", password: "any", totpCode: "" },
       baseNow,
     );
 
@@ -474,13 +496,13 @@ describe("beginLogin", () => {
   it("uses the same generic message for missing user, bad password, and lockout", async () => {
     // Missing user
     dbMocks.select.mockReturnValue(selectReturning([]));
-    const r1 = await beginLogin({ userId: 1, password: "x", totpCode: "" }, baseNow);
+    const r1 = await beginLogin({ username: "Alice", password: "x", totpCode: "" }, baseNow);
 
     // Wrong password
     dbMocks.select.mockReturnValue(selectReturning([userWithTotp]));
     passwordMocks.verifyPassword.mockResolvedValue(false);
     dbMocks.update.mockReturnValue(updateChain());
-    const r2 = await beginLogin({ userId: 1, password: "wrong", totpCode: "" }, baseNow);
+    const r2 = await beginLogin({ username: "Alice", password: "wrong", totpCode: "" }, baseNow);
 
     // Locked
     const lockedUser = {
@@ -488,7 +510,7 @@ describe("beginLogin", () => {
       lockedUntil: new Date(baseNow.getTime() + 60_000),
     };
     dbMocks.select.mockReturnValue(selectReturning([lockedUser]));
-    const r3 = await beginLogin({ userId: 1, password: "x", totpCode: "" }, baseNow);
+    const r3 = await beginLogin({ username: "Alice", password: "x", totpCode: "" }, baseNow);
 
     expect(r1.status).toBe("invalid");
     expect(r2.status).toBe("invalid");

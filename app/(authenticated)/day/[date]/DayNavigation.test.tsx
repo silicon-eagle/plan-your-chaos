@@ -3,10 +3,17 @@ import { describe, expect, it } from "vitest";
 import { DayNavigation } from "./DayNavigation";
 
 describe("DayNavigation", () => {
+  it("omits event creation for readers", () => {
+    render(<DayNavigation date={new Date(2026, 6, 24)} canEdit={false} />);
+    expect(screen.queryByRole("link", { name: "Create event" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Next day" })).toBeInTheDocument();
+  });
+
   it("links to adjacent days, today, and event creation", () => {
     render(
       <DayNavigation
         date={new Date(2026, 6, 24)}
+        canEdit
         currentDate={new Date(2026, 6, 30)}
       />,
     );
@@ -32,6 +39,7 @@ describe("DayNavigation", () => {
     render(
       <DayNavigation
         date={new Date(2026, 6, 24)}
+        canEdit
         currentDate={new Date(2026, 6, 30)}
       />,
     );

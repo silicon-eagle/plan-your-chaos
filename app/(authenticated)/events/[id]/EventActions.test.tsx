@@ -7,10 +7,18 @@ vi.mock("./actions", () => ({
 }));
 
 describe("EventActions", () => {
+  it("keeps navigation but hides editing and deletion for readers", () => {
+    render(<EventActions eventId={12} previousEventId={11} nextEventId={13} canEdit={false} />);
+    expect(screen.getByRole("link", { name: "Next event" })).toHaveAttribute("href", "/events/13");
+    expect(screen.queryByRole("link", { name: "Edit event" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete event" })).not.toBeInTheDocument();
+  });
+
   it("links to adjacent events, editing, and the calendar", () => {
     render(
       <EventActions
         eventId={12}
+        canEdit
         previousEventId={11}
         nextEventId={13}
       />,
@@ -44,6 +52,7 @@ describe("EventActions", () => {
     render(
       <EventActions
         eventId={12}
+        canEdit
         previousEventId={null}
         nextEventId={null}
       />,
@@ -61,6 +70,7 @@ describe("EventActions", () => {
     render(
       <EventActions
         eventId={12}
+        canEdit
         previousEventId={11}
         nextEventId={13}
       />,

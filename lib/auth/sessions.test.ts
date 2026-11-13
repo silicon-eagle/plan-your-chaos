@@ -35,7 +35,7 @@ import { AUTH_LIMITS } from "./constants";
 function selectReturning(result: unknown[]) {
   const limit = vi.fn().mockResolvedValue(result);
   const where = vi.fn(() => ({ limit }));
-  const innerJoin = vi.fn(() => ({ where }));
+  const innerJoin = vi.fn(() => ({ where, innerJoin }));
   return { from: vi.fn(() => ({ innerJoin, where })) };
 }
 
@@ -64,7 +64,7 @@ function deleteChain() {
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
 const baseNow = new Date("2026-08-28T12:00:00.000Z");
-const baseUser = { id: 2, name: "Alice", avatarPath: null };
+const baseUser = { id: 2, name: "Alice", role: "User" as const };
 const baseSessionRow = {
   id: 1,
   userId: 2,
@@ -118,7 +118,7 @@ describe("createSession", () => {
     expect(dbMocks.delete).toHaveBeenCalled();
   });
 
-  it("returns the user's name and avatar in the session", async () => {
+  it("returns the user's name and current role in the session", async () => {
     const session = await createSession(2, baseNow);
     expect(session.user).toEqual(baseUser);
   });
@@ -134,6 +134,20 @@ describe("createSession", () => {
 
 describe("findSessionByToken", () => {
   const token = "valid-test-token";
+
+  it("resolves role changes from the database on every session lookup", async () => {
+    dbMocks.select
+      .mockReturnValueOnce(selectReturning([baseSessionRow]))
+      .mockReturnValueOnce(selectReturning([{
+        ...baseSessionRow,
+        user: { ...baseUser, role: "Reader" },
+      }]));
+    expect((await findSessionByToken(token, baseNow))?.user.role).toBe("User");
+    expect((await findSessionByToken(token, baseNow))?.user.role).toBe("Reader");
+    expect(dbMocks.select).toHaveBeenLastCalledWith(expect.objectContaining({
+      user: expect.objectContaining({ role: expect.anything() }),
+    }));
+  });
 
   it("returns null for an unknown token", async () => {
     dbMocks.select.mockReturnValue(selectReturning([]));

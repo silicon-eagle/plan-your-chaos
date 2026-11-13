@@ -93,10 +93,10 @@ a {
 
 .site-header {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: var(--header-height);
   align-items: center;
-  justify-content: space-between;
   gap: 2rem;
   padding: 1rem 1.5rem;
   background: var(--background);
@@ -104,13 +104,15 @@ a {
 
 .site-title {
   display: block;
+  width: min(100%, calc(176px * var(--pixel-art-scale)));
+  min-width: 0;
   line-height: 0;
   text-decoration: none;
 }
 
 .site-title img {
-  width: calc(176px * var(--pixel-art-scale));
-  height: calc(64px * var(--pixel-art-scale));
+  width: 100%;
+  height: auto;
 }
 
 .desktop-navigation,
@@ -129,11 +131,11 @@ a {
   display: none;
 }
 
-.desktop-navigation a,
-.mobile-navigation a {
+.site-header .header-button {
   padding: 0.5rem 0.75rem;
   color: var(--light-purple);
   font-size: 20px;
+  line-height: 1.25;
   text-decoration: none;
 }
 
@@ -145,6 +147,7 @@ a {
 .menu-button {
   position: relative;
   display: none;
+  flex: 0 0 64px;
   width: 64px;
   height: 64px;
   place-items: center;
@@ -277,6 +280,10 @@ a {
   padding: 0.5rem 1rem 1rem;
 }
 
+.mobile-logout .header-button {
+  width: 100%;
+}
+
 .pixel-border {
   border: calc(2px * var(--pixel-art-scale)) solid transparent;
   border-image: url("/images/border.png") 2 /
@@ -284,26 +291,10 @@ a {
   image-rendering: pixelated;
 }
 
-@media (max-width: 42rem) {
-  :root {
-    --page-top-spacing: 1rem;
-  }
-
-  h1 {
-    font-size: 40px;
-  }
-
+@media (max-width: 64rem) {
   .site-header {
     gap: 1rem;
     padding-inline: 1rem;
-  }
-
-  .user-panel h1 {
-    font-size: 32px;
-  }
-
-  .site-title img {
-    width: calc(64px * var(--pixel-art-scale));
   }
 
   .desktop-navigation {
@@ -327,5 +318,23 @@ a {
 
   .menu-button {
     display: grid;
+  }
+}
+
+@media (max-width: 42rem) {
+  :root {
+    --page-top-spacing: 1rem;
+  }
+
+  h1 {
+    font-size: 40px;
+  }
+
+  .user-panel h1 {
+    font-size: 32px;
+  }
+
+  .site-title {
+    width: min(100%, calc(64px * var(--pixel-art-scale)));
   }
 }

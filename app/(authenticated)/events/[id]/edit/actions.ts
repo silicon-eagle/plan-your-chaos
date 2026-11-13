@@ -1,12 +1,14 @@
 "use server";
 
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { eventAttendants, events, users } from "@/db/schema";
-import { requireSession } from "@/lib/auth/authorization";
+import { requireRole } from "@/lib/auth/authorization";
+import { USER_ROLE_IDS } from "@/lib/auth/roles";
 import { parseEventFormData } from "@/lib/events/form-data";
 import { resolveEventIconId } from "@/lib/events/icons";
+import { isEventOwner } from "@/lib/events/owners";
 import {
   logger,
   withDatabaseLogging,
@@ -18,6 +20,7 @@ export async function updateEvent(
   _state: EventFormState,
   formData: FormData,
 ): Promise<EventFormState> {
+  await requireRole(["User"]);
   const parsed = parseEventFormData(formData);
 
   if ("error" in parsed) {
@@ -33,25 +36,35 @@ export async function updateEvent(
     startsAt,
     endsAt,
     allDay,
+    hidden,
+    userId,
     notes,
     attendantIds,
     iconId: submittedIconId,
   } = parsed.data;
 
-  await requireSession();
+  if (!(await isEventOwner(userId))) {
+    logger.warn("event.update.rejected", { eventId, reason: "invalid_owner" });
+    return { error: "Select an organiser with the User role." };
+  }
 
   if (attendantIds.length > 0) {
     const selectedUsers = await db
       .select({ id: users.id })
       .from(users)
-      .where(inArray(users.id, attendantIds));
+      .where(
+        and(
+          inArray(users.id, attendantIds),
+          ne(users.roleId, USER_ROLE_IDS.Admin),
+        ),
+      );
 
     if (selectedUsers.length !== attendantIds.length) {
       logger.warn("event.update.rejected", {
         eventId,
-        reason: "unknown_attendant",
+        reason: "invalid_attendant",
       });
-      return { error: "One or more selected attendants no longer exist." };
+      return { error: "One or more selected attendants no longer exist or cannot attend events." };
     }
   }
 
@@ -77,6 +90,8 @@ export async function updateEvent(
             startsAt,
             endsAt,
             allDay,
+            hidden,
+            userId,
             notes,
             iconId,
             updatedAt: new Date(),

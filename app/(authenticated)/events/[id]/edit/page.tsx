@@ -4,7 +4,7 @@ import { EventForm } from "@/components/EventForm/EventForm";
 import { db } from "@/db";
 import { eventAttendants, events, icons, users } from "@/db/schema";
 import { parsePositiveInteger } from "@/app/api/events/validation";
-import { requirePageSession } from "@/lib/auth/authorization";
+import { requirePageRole } from "@/lib/auth/authorization";
 import { formatDateKey } from "@/lib/calendar/utils";
 import { chooseRandomIcon } from "@/lib/events/icons";
 import { updateEvent } from "./actions";
@@ -32,7 +32,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
     notFound();
   }
 
-  await requirePageSession();
+  await requirePageRole(["User"]);
 
   const [event] = await db
     .select()
@@ -49,7 +49,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
       .select({
         id: users.id,
         name: users.name,
-        avatarPath: users.avatarPath,
+        roleId: users.roleId,
       })
       .from(users)
       .orderBy(asc(users.name)),
@@ -89,6 +89,8 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
             startsAt: formatDateTimeLocal(event.startsAt),
             endsAt: formatDateTimeLocal(event.endsAt),
             allDay: event.allDay,
+            hidden: event.hidden,
+            userId: event.userId,
             notes: event.notes ?? "",
             attendantIds: attendanceRows.map(({ userId }) => userId),
             iconId: defaultIconId,

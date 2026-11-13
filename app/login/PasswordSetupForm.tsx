@@ -1,3 +1,4 @@
+import { PasswordField } from "./PasswordField";
 import styles from "./login.module.css";
 
 type Props = {
@@ -18,29 +19,17 @@ export function PasswordSetupForm({ action, error, isPending }: Props) {
         {error && <p className={styles.error}>{error}</p>}
       </div>
 
-      <div className={styles.field}>
-        <label htmlFor="password">New Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          autoComplete="new-password"
-          className={styles.input}
-        />
-      </div>
+      <PasswordField
+        label="New Password"
+        name="password"
+        autoComplete="new-password"
+      />
 
-      <div className={styles.field}>
-        <label htmlFor="confirmation">Confirm Password</label>
-        <input
-          id="confirmation"
-          name="confirmation"
-          type="password"
-          required
-          autoComplete="new-password"
-          className={styles.input}
-        />
-      </div>
+      <PasswordField
+        label="Confirm Password"
+        name="confirmation"
+        autoComplete="new-password"
+      />
 
       <input type="hidden" name="_action" value="set_password" />
 

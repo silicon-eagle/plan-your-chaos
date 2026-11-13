@@ -12,11 +12,21 @@ vi.mock("@/app/login/actions", () => ({
 }));
 
 describe("Header", () => {
+  it.each(["User", "Reader"] as const)("hides administration from %s", (role) => {
+    render(<Header activeUserName="Tim" role={role} />);
+    expect(screen.queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
+  });
+
+  it("links Admin to user management", () => {
+    render(<Header activeUserName="Admin" role="Admin" />);
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
+  });
+
   it("renders the page links, logout button, and marks the current page", () => {
     render(
       <Header
         activeUserName="Adam"
-        activeUserAvatarPath="/images/userT.png"
+        role="User"
       />,
     );
 
@@ -43,7 +53,7 @@ describe("Header", () => {
     render(
       <Header
         activeUserName="Adam"
-        activeUserAvatarPath="/images/userT.png"
+        role="User"
       />,
     );
 
@@ -56,7 +66,7 @@ describe("Header", () => {
     render(
       <Header
         activeUserName="Adam"
-        activeUserAvatarPath="/images/userT.png"
+        role="User"
       />,
     );
 
@@ -83,7 +93,7 @@ describe("Header", () => {
     render(
       <Header
         activeUserName="Adam"
-        activeUserAvatarPath="/images/userT.png"
+        role="User"
       />,
     );
 
@@ -117,7 +127,7 @@ describe("Header", () => {
     render(
       <Header
         activeUserName="Adam"
-        activeUserAvatarPath="/images/userT.png"
+        role="User"
       />,
     );
 

@@ -1,9 +1,10 @@
 import { Calendar } from "@/components/Calendar/Calendar";
 import { requirePageSession } from "@/lib/auth/authorization";
+import { canEditEvents } from "@/lib/auth/roles";
 import styles from "./page.module.css";
 
 export default async function CalendarPage() {
-  await requirePageSession();
+  const session = await requirePageSession();
 
   return (
     <main className={styles.page}>
@@ -11,7 +12,7 @@ export default async function CalendarPage() {
         className={styles.panel}
         aria-label="Calendar"
       >
-        <Calendar />
+        <Calendar canEdit={canEditEvents(session.user.role)} />
       </section>
     </main>
   );

@@ -12,6 +12,7 @@ type EventActionsProps = {
   eventId: number;
   previousEventId: number | null;
   nextEventId: number | null;
+  canEdit: boolean;
 };
 
 type ActionImageName =
@@ -48,6 +49,7 @@ export function EventActions({
   eventId,
   previousEventId,
   nextEventId,
+  canEdit,
 }: EventActionsProps) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
@@ -63,22 +65,25 @@ export function EventActions({
         </Link>
       )}
 
-      <Link
-        className={buttonStyles.button}
-        href={`/events/${eventId}/edit`}
-        aria-label="Edit event"
-      >
-        <ActionImages name="editBtn" />
-      </Link>
-
-      <button
-        className={buttonStyles.button}
-        type="button"
-        aria-label="Delete event"
-        onClick={() => setIsConfirmingDelete(true)}
-      >
-        <ActionImages name="deleteBtn" />
-      </button>
+      {canEdit && (
+        <>
+          <Link
+            className={buttonStyles.button}
+            href={`/events/${eventId}/edit`}
+            aria-label="Edit event"
+          >
+            <ActionImages name="editBtn" />
+          </Link>
+          <button
+            className={buttonStyles.button}
+            type="button"
+            aria-label="Delete event"
+            onClick={() => setIsConfirmingDelete(true)}
+          >
+            <ActionImages name="deleteBtn" />
+          </button>
+        </>
+      )}
 
       {nextEventId && (
         <Link
@@ -98,7 +103,7 @@ export function EventActions({
         <ActionImages name="calendarBtn" />
       </Link>
 
-      {isConfirmingDelete && (
+      {canEdit && isConfirmingDelete && (
         <div
           className={`pixel-border ${styles.deleteConfirmation}`}
           role="alertdialog"

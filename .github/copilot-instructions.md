@@ -38,20 +38,20 @@ Prefer:
 
 Only use these colours unless there is a compelling reason not to.
 
-| Name       | Colour    |
-| ---------- | --------- |
-| Background | `#1A1026` |
-| Surface    | `#2E1852` |
-| Primary    | `#4B2E83` |
-| Gold       | `#DEAB15` |
-| Yellow     | `#F2C900` |
-| Highlight  | `#F5E580` |
-| Light Purple | `#D8C7FF` |
-| Dark Teal | `#216B6A` |
-| Teal | `#3FA7A3` |
+| Name           | Colour    |
+| -------------- | --------- |
+| Background     | `#1A1026` |
+| Surface        | `#2E1852` |
+| Primary        | `#4B2E83` |
+| Gold           | `#DEAB15` |
+| Yellow         | `#F2C900` |
+| Highlight      | `#F5E580` |
+| Light Purple   | `#D8C7FF` |
+| Dark Teal      | `#216B6A` |
+| Teal           | `#3FA7A3` |
 | Highlight Teal | `#82D8D2` |
-| Dark Pink | `#A84F68` |
-| Pink | `#E58AA4` |
+| Dark Pink      | `#A84F68` |
+| Pink           | `#E58AA4` |
 | Highlight Pink | `#F6C1D0` |
 
 ## Typography
@@ -116,3 +116,4 @@ When generating code:
 4. Preserve the pixel-art identity.
 5. Do not introduce unnecessary complexity.
 6. Keep the calendar and upcoming events as the primary focus of the application.
+7. Do not use GIT operations other than read operations. You are NOT allowed to create commits.

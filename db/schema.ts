@@ -1,6 +1,8 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
+import { USER_ROLE_IDS, type UserRole } from "../lib/auth/roles";
 import {
   boolean,
+  check,
   index,
   integer,
   pgTable,
@@ -9,6 +11,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const loginChallengeStage = pgEnum("login_challenge_stage", [
@@ -16,10 +19,28 @@ export const loginChallengeStage = pgEnum("login_challenge_stage", [
   "enroll_totp",
 ]);
 
+export const userRoles = pgTable(
+  "user_roles",
+  {
+    id: integer("id").primaryKey(),
+    name: text("name").$type<UserRole>().notNull().unique(),
+  },
+  (table) => [
+    check("user_roles_fixed", sql`(${table.id} = 1 and ${table.name} = 'Admin') or (${table.id} = 2 and ${table.name} = 'User') or (${table.id} = 3 and ${table.name} = 'Reader')`),
+  ],
+);
+
+export const seedInitializations = pgTable("seed_initializations", {
+  key: text("key").primaryKey(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  avatarPath: text("avatar_path"),
+  name: text("name").notNull(),
+  roleId: integer("role_id")
+    .default(USER_ROLE_IDS.User)
+    .notNull()
+    .references(() => userRoles.id),
   passwordHash: text("password_hash"),
   mustSetPassword: boolean("must_set_password").default(false).notNull(),
   totpSecretEncrypted: text("totp_secret_encrypted"),
@@ -30,7 +51,9 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
-});
+}, (table) => [
+  uniqueIndex("users_name_case_insensitive_unique").on(sql`lower(${table.name})`),
+]);
 
 export const icons = pgTable(
   "icons",
@@ -49,6 +72,7 @@ export const events = pgTable(
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
     allDay: boolean("all_day").default(false).notNull(),
+    hidden: boolean("hidden").default(false).notNull(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -135,7 +159,15 @@ export const loginChallenges = pgTable(
   ],
 );
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const userRolesRelations = relations(userRoles, ({ many }) => ({
+  users: many(users),
+}));
+
+export const usersRelations = relations(users, ({ many, one }) => ({
+  role: one(userRoles, {
+    fields: [users.roleId],
+    references: [userRoles.id],
+  }),
   events: many(events),
   eventAttendances: many(eventAttendants),
   sessions: many(sessions),

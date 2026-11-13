@@ -39,15 +39,16 @@ export async function loginFlowAction(
 }
 
 export async function loginAction(formData: FormData): Promise<LoginFormState> {
-  const userId = Number(formData.get("userId"));
+  const usernameValue = formData.get("username");
+  const username = typeof usernameValue === "string" ? usernameValue.trim() : "";
   const password = String(formData.get("password") ?? "");
   const totpCode = String(formData.get("totpCode") ?? "");
 
-  if (!Number.isInteger(userId) || userId <= 0) {
-    return { error: "Please select a household member." };
+  if (!username) {
+    return { error: "Enter your username." };
   }
 
-  const result = await beginLogin({ userId, password, totpCode });
+  const result = await beginLogin({ username, password, totpCode });
 
   if (result.status === "authenticated") {
     redirect("/");

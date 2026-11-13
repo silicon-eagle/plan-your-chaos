@@ -53,6 +53,7 @@
 
 .input {
   width: 100%;
+  min-width: 0;
   padding: 0.5rem;
   border: calc(2px * var(--pixel-art-scale)) solid transparent;
   border-image: url("/images/border.png") 2 /
@@ -67,6 +68,24 @@
 .input:focus {
   outline: 3px solid var(--light-purple);
   outline-offset: 3px;
+}
+
+.passwordControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.passwordInput {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono",
+    monospace;
+  font-variant-ligatures: none;
+  line-height: 1.5;
+}
+
+.passwordVisibilityButton {
+  min-width: 5rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .submitButton {
@@ -121,4 +140,11 @@
   letter-spacing: 0.15em;
   text-align: center;
   word-break: break-all;
+}
+
+@media (max-width: 42rem) {
+  .loginPage,
+  .loginForm {
+    padding: 1rem;
+  }
 }

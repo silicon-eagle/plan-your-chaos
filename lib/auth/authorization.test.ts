@@ -12,17 +12,20 @@ vi.mock("./sessions", () => ({ findSessionByToken: mocks.findSessionByToken }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 import {
+  ForbiddenError,
   UnauthenticatedError,
   getSession,
   isSameOrigin,
   requirePageSession,
   requireSession,
+  requireRole,
+  requirePageRole,
   withApiAuthentication,
 } from "./authorization";
 
 const baseSession = {
   id: 1,
-  user: { id: 2, name: "Alice", avatarPath: null },
+  user: { id: 2, name: "Alice", role: "User" as const },
   createdAt: new Date("2026-08-28T12:00:00.000Z"),
   lastActiveAt: new Date("2026-08-28T12:00:00.000Z"),
   idleExpiresAt: new Date("2026-08-29T12:00:00.000Z"),
@@ -108,6 +111,33 @@ describe("requirePageSession", () => {
   });
 });
 
+describe("role guards", () => {
+  it("throws ForbiddenError for a non-admin action", async () => {
+    mocks.getSessionToken.mockResolvedValue("valid-token");
+    mocks.findSessionByToken.mockResolvedValue(baseSession);
+    await expect(requireRole(["Admin"])).rejects.toThrow(ForbiddenError);
+  });
+
+  it("allows an explicitly permitted role", async () => {
+    mocks.getSessionToken.mockResolvedValue("valid-token");
+    mocks.findSessionByToken.mockResolvedValue(baseSession);
+    await expect(requireRole(["Admin", "User"])).resolves.toEqual(baseSession);
+  });
+
+  it("redirects unauthorized pages home", async () => {
+    mocks.getSessionToken.mockResolvedValue("valid-token");
+    mocks.findSessionByToken.mockResolvedValue(baseSession);
+    await expect(requirePageRole(["Admin"])).rejects.toThrow("NEXT_REDIRECT");
+    expect(mocks.redirect).toHaveBeenCalledWith("/");
+  });
+
+  it("redirects unauthenticated pages to login", async () => {
+    mocks.getSessionToken.mockResolvedValue(undefined);
+    await expect(requirePageRole(["Admin"])).rejects.toThrow("NEXT_REDIRECT");
+    expect(mocks.redirect).toHaveBeenCalledWith("/login");
+  });
+});
+
 // ── isSameOrigin ───────────────────────────────────────────────────────────
 
 describe("isSameOrigin", () => {
@@ -138,6 +168,39 @@ describe("isSameOrigin", () => {
 // ── withApiAuthentication ──────────────────────────────────────────────────
 
 describe("withApiAuthentication", () => {
+  it.each(["Reader", "unknown", undefined])(
+    "rejects a same-origin write for role %s before the handler",
+    async (role) => {
+      mocks.getSessionToken.mockResolvedValue("valid-token");
+      mocks.findSessionByToken.mockResolvedValue({
+        ...baseSession,
+        user: { ...baseSession.user, role },
+      });
+      const handler = vi.fn().mockResolvedValue(Response.json({ data: "ok" }));
+      const response = await withApiAuthentication(handler)(
+        new Request("https://calendar.test/api/events", {
+          method: "POST",
+          headers: { Origin: "https://calendar.test" },
+        }),
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({ error: "Forbidden" });
+      expect(handler).not.toHaveBeenCalled();
+    },
+  );
+
+  it("allows Readers to read events", async () => {
+    mocks.getSessionToken.mockResolvedValue("valid-token");
+    mocks.findSessionByToken.mockResolvedValue({
+      ...baseSession,
+      user: { ...baseSession.user, role: "Reader" },
+    });
+    const handler = vi.fn().mockResolvedValue(Response.json({ data: [] }));
+    expect((await withApiAuthentication(handler)(
+      new Request("https://calendar.test/api/events"),
+    )).status).toBe(200);
+  });
+
   it("returns a JSON 401 before the API handler runs", async () => {
     mocks.getSessionToken.mockResolvedValue(undefined);
     const handler = vi.fn();
@@ -149,6 +212,7 @@ describe("withApiAuthentication", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Authentication required",
     });
+
     expect(handler).not.toHaveBeenCalled();
   });
 

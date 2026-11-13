@@ -17,20 +17,14 @@ vi.mock("@/db", () => ({
   db: { select: mocks.dbSelect },
 }));
 vi.mock("./LoginForm", () => ({
-  LoginForm: ({ users }: { users: { id: number; name: string }[] }) => (
-    <ul>
-      {users.map((u) => (
-        <li key={u.id}>{u.name}</li>
-      ))}
-    </ul>
-  ),
+  LoginForm: () => <form aria-label="Login" />,
 }));
 
 import LoginPage from "./page";
 
 const authenticatedSession = {
   id: 1,
-  user: { id: 1, name: "Alice", avatarPath: null },
+  user: { id: 1, name: "Alice", role: "User" },
   createdAt: new Date(),
   lastActiveAt: new Date(),
   idleExpiresAt: new Date(),
@@ -62,22 +56,13 @@ describe("LoginPage", () => {
     expect(mocks.dbSelect).not.toHaveBeenCalled();
   });
 
-  it("renders the login form and queries only id and name when unauthenticated", async () => {
+  it("renders the login form without fetching the account list", async () => {
     mocks.getSession.mockResolvedValue(null);
-
-    const orderBy = vi.fn().mockResolvedValue([
-      { id: 1, name: "Alice" },
-      { id: 2, name: "Bob" },
-    ]);
-    mocks.dbSelect.mockReturnValue({ from: vi.fn(() => ({ orderBy })) });
 
     render(await LoginPage());
 
     expect(mocks.redirect).not.toHaveBeenCalled();
-    expect(mocks.dbSelect).toHaveBeenCalled();
-    const selectArg = mocks.dbSelect.mock.calls[0][0] as Record<string, unknown>;
-    expect(Object.keys(selectArg)).toEqual(["id", "name"]);
-    expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("Bob")).toBeInTheDocument();
+    expect(mocks.dbSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole("form", { name: "Login" })).toBeInTheDocument();
   });
 });

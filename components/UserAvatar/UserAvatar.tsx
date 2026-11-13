@@ -3,16 +3,15 @@ import styles from "./UserAvatar.module.css";
 
 type UserAvatarProps = {
   name: string;
-  src: string | null;
   decorative?: boolean;
 };
 
 export function UserAvatar({
   name,
-  src,
   decorative = false,
 }: UserAvatarProps) {
-  if (!src) {
+  const initial = name.trim().charAt(0).toLowerCase();
+  if (!/^[a-z]$/.test(initial)) {
     return (
       <span
         className={styles.fallback}
@@ -28,7 +27,7 @@ export function UserAvatar({
   return (
     <Image
       className={styles.avatar}
-      src={src}
+      src={`/images/avatars/avatar_${initial === "w" ? "W" : initial}.png`}
       alt={decorative ? "" : `${name} avatar`}
       width={16}
       height={16}
