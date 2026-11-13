@@ -85,6 +85,20 @@
       "when": 1794585036295,
       "tag": "0011_faithful_hardball",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794587294685,
+      "tag": "0012_add_christmas_icon",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794587784538,
+      "tag": "0013_lumpy_hellion",
+      "breakpoints": true
     }
   ]
 }

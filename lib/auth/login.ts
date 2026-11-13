@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, isNull, lt, or } from "drizzle-orm";
+import { and, eq, isNull, lt, lte, or } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { AUTH_LIMITS } from "./constants";
@@ -32,7 +32,6 @@ import { usernameMatches } from "./usernames";
 export type LoginInput = {
   username: string;
   password: string;
-  totpCode: string;
 };
 
 export type PasswordSetupInput = {
@@ -41,7 +40,7 @@ export type PasswordSetupInput = {
 };
 
 export type LoginResult =
-  | { status: "authenticated" }
+  | { status: "verify_totp" }
   | { status: "set_password" }
   | { status: "enroll_totp" }
   | { status: "invalid"; message: string };
@@ -104,56 +103,119 @@ export async function beginLogin(
     return { status: "invalid", message: GENERIC_FAILURE };
   }
 
-  // 4. If TOTP exists, verify code and replay counter
+  // 4. Verify enrolled TOTP before any required password setup.
   if (user.totpSecretEncrypted && user.totpEnabledAt) {
-    const secret = decryptTotpSecret(user.totpSecretEncrypted);
-    const totpResult = verifyTotpCode(secret, input.totpCode, now);
-
-    if (!totpResult.valid) {
-      await incrementFailedAttempts(user.id, user.failedLoginCount, now);
-      return { status: "invalid", message: GENERIC_FAILURE };
-    }
-
-    if (
-      user.lastTotpCounter !== null &&
-      totpResult.counter !== null &&
-      totpResult.counter <= user.lastTotpCounter
-    ) {
-      await incrementFailedAttempts(user.id, user.failedLoginCount, now);
-      return { status: "invalid", message: GENERIC_FAILURE };
-    }
-
-    const claimedCounter = await claimTotpCounter(
-      user.id,
-      totpResult.counter,
-    );
-    if (!claimedCounter) {
-      await incrementFailedAttempts(user.id, user.failedLoginCount, now);
-      return { status: "invalid", message: GENERIC_FAILURE };
-    }
-
-    // 5. If mustSetPassword — issue setup challenge
-    if (user.mustSetPassword) {
-      await createChallenge(user.id, "set_password", now);
-      return { status: "set_password" };
-    }
-
-    // 7. Success — accepted counter and failure reset were claimed atomically
-    await createSession(user.id, now);
-    return { status: "authenticated" };
+    await createChallenge(user.id, "verify_totp", now);
+    return { status: "verify_totp" };
   }
 
-  // No TOTP on the account
-
-  // 5. If mustSetPassword — setup challenge
   if (user.mustSetPassword) {
     await createChallenge(user.id, "set_password", now);
     return { status: "set_password" };
   }
 
-  // 6. TOTP absent — enrollment challenge
+  // TOTP absent — enrollment challenge
   await createChallenge(user.id, "enroll_totp", now);
   return { status: "enroll_totp" };
+}
+
+// ── completeTotpLogin ─────────────────────────────────────────────────────
+
+export async function completeTotpLogin(
+  code: string,
+  now = new Date(),
+): Promise<
+  | { status: "authenticated" }
+  | { status: "set_password" }
+  | { status: "invalid"; message: string }
+  | { status: "expired"; message: string }
+> {
+  const token = await getChallengeToken();
+  if (!token) return { status: "expired", message: CHALLENGE_EXPIRED };
+
+  const challenge = await findValidChallenge(token, "verify_totp", now);
+  if (!challenge) return { status: "expired", message: CHALLENGE_EXPIRED };
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, challenge.userId))
+    .limit(1);
+
+  if (!user) return { status: "expired", message: CHALLENGE_EXPIRED };
+
+  if (user.lockedUntil) {
+    if (now < user.lockedUntil) {
+      return { status: "invalid", message: GENERIC_FAILURE };
+    }
+    await db
+      .update(users)
+      .set({ lockedUntil: null, failedLoginCount: 0 })
+      .where(eq(users.id, user.id));
+    user.failedLoginCount = 0;
+  }
+
+  if (!user.totpSecretEncrypted || !user.totpEnabledAt) {
+    await incrementFailedAttempts(user.id, user.failedLoginCount, now);
+    return { status: "invalid", message: GENERIC_FAILURE };
+  }
+
+  const secret = decryptTotpSecret(user.totpSecretEncrypted);
+  const totpResult = verifyTotpCode(secret, code, now);
+  if (!totpResult.valid) {
+    await incrementFailedAttempts(user.id, user.failedLoginCount, now);
+    return { status: "invalid", message: GENERIC_FAILURE };
+  }
+
+  if (
+    user.lastTotpCounter !== null &&
+    totpResult.counter !== null &&
+    totpResult.counter <= user.lastTotpCounter
+  ) {
+    await incrementFailedAttempts(user.id, user.failedLoginCount, now);
+    return { status: "invalid", message: GENERIC_FAILURE };
+  }
+
+  const newToken = user.mustSetPassword ? generateOpaqueToken() : null;
+  const newExpiresAt = new Date(now.getTime() + AUTH_LIMITS.challengeLifetimeMs);
+  let completed = false;
+  try {
+    completed = await db.transaction(async (tx) => {
+      const counterClaimed = await claimTotpCounter(
+        challenge.userId,
+        totpResult.counter,
+        now,
+        tx,
+      );
+      if (!counterClaimed) return false;
+
+      const challengeClaimed = newToken
+        ? await advanceChallenge(challenge, {
+            tokenHash: hashOpaqueToken(newToken),
+            stage: "set_password",
+            expiresAt: newExpiresAt,
+          }, now, tx)
+        : await consumeChallenge(challenge, now, tx);
+      if (!challengeClaimed) throw new TotpCompletionRace();
+      return true;
+    });
+  } catch (error) {
+    if (!(error instanceof TotpCompletionRace)) throw error;
+  }
+
+  if (!completed) {
+    await incrementFailedAttempts(user.id, user.failedLoginCount, now);
+    return { status: "invalid", message: GENERIC_FAILURE };
+  }
+
+  if (newToken) {
+    await setChallengeCookie(newToken, newExpiresAt);
+    return { status: "set_password" };
+  }
+
+  await clearChallengeCookie();
+  await createSession(challenge.userId, now);
+  return { status: "authenticated" };
 }
 
 // ── completePasswordSetup ─────────────────────────────────────────────────
@@ -404,10 +466,12 @@ async function incrementFailedAttempts(
 async function claimTotpCounter(
   userId: number,
   counter: number | null,
+  now: Date,
+  database: LoginDatabase = db,
 ): Promise<boolean> {
   if (counter === null) return false;
 
-  const updated = await db
+  const updated = await database
     .update(users)
     .set({
       lastTotpCounter: counter,
@@ -417,6 +481,7 @@ async function claimTotpCounter(
     .where(
       and(
         eq(users.id, userId),
+        or(isNull(users.lockedUntil), lte(users.lockedUntil, now)),
         or(
           isNull(users.lastTotpCounter),
           lt(users.lastTotpCounter, counter),
@@ -427,3 +492,7 @@ async function claimTotpCounter(
 
   return updated.length === 1;
 }
+
+type LoginDatabase = Pick<typeof db, "update">;
+
+class TotpCompletionRace extends Error {}

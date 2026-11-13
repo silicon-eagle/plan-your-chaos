@@ -1,11 +1,21 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockedUseActionState = vi.hoisted(() => vi.fn());
 
 vi.mock("./actions", () => ({
   loginFlowAction: vi.fn(),
 }));
+vi.mock("react", async () => ({
+  ...(await vi.importActual<typeof import("react")>("react")),
+  useActionState: mockedUseActionState,
+}));
 
 import { LoginForm } from "./LoginForm";
+
+beforeEach(() => {
+  mockedUseActionState.mockReturnValue([{}, vi.fn(), false]);
+});
 
 describe("LoginForm", () => {
   it("uses a required username text field instead of listing accounts", () => {
@@ -45,9 +55,30 @@ describe("LoginForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("renders TOTP verification code input", () => {
+  it("does not render a verification code on the password step", () => {
     render(<LoginForm />);
-    expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/verification code/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Show password" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders a dedicated one-time-code form for verify_totp", () => {
+    mockedUseActionState.mockReturnValue([
+      { step: "verify_totp" },
+      vi.fn(),
+      false,
+    ]);
+
+    render(<LoginForm />);
+
+    const code = screen.getByLabelText("Verification Code");
+    expect(code).toHaveAttribute("name", "code");
+    expect(code).toHaveAttribute("autocomplete", "one-time-code");
+    expect(screen.queryByLabelText("Username")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
   });
 
   it("renders a submit button", () => {
@@ -67,6 +98,5 @@ describe("LoginForm", () => {
     render(<LoginForm />);
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
-    expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument();
   });
 });

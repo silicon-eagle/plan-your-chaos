@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { beginLogin as realBeginLogin } from "@/lib/auth/login";
 
 const mocks = vi.hoisted(() => ({
   getSessionToken: vi.fn(),
   revokeSessionByToken: vi.fn(),
-  beginLogin: vi.fn(),
+  beginLogin: vi.fn<typeof realBeginLogin>(),
+  completeTotpLogin: vi.fn(),
   completePasswordSetup: vi.fn(),
   beginTotpEnrollment: vi.fn(),
   completeTotpEnrollment: vi.fn(),
@@ -20,6 +22,7 @@ vi.mock("@/lib/auth/sessions", () => ({
 }));
 vi.mock("@/lib/auth/login", () => ({
   beginLogin: mocks.beginLogin,
+  completeTotpLogin: mocks.completeTotpLogin,
   completePasswordSetup: mocks.completePasswordSetup,
   beginTotpEnrollment: mocks.beginTotpEnrollment,
   completeTotpEnrollment: mocks.completeTotpEnrollment,
@@ -35,6 +38,7 @@ import {
   loginFlowAction,
   logoutAction,
   setPasswordAction,
+  verifyTotpAction,
 } from "./actions";
 
 beforeEach(() => {
@@ -48,7 +52,6 @@ describe("loginAction", () => {
     const fd = new FormData();
     fd.set("username", "   ");
     fd.set("password", "pass");
-    fd.set("totpCode", "");
 
     const result = await loginAction(fd);
 
@@ -61,26 +64,28 @@ describe("loginAction", () => {
     const fd = new FormData();
     fd.set("username", " AdMiN ");
     fd.set("password", "CaseSensitive Password!");
-    fd.set("totpCode", "");
 
     const result = await loginAction(fd);
 
     expect(mocks.beginLogin).toHaveBeenCalledWith({
-      username: "AdMiN", password: "CaseSensitive Password!", totpCode: "",
+      username: "AdMiN", password: "CaseSensitive Password!",
     });
     expect(result.step).toBe("set_password");
   });
 
-  it("redirects to / on successful authentication", async () => {
-    mocks.beginLogin.mockResolvedValue({ status: "authenticated" });
+  it("returns verify_totp after password validation", async () => {
+    mocks.beginLogin.mockResolvedValue({ status: "verify_totp" });
     const fd = new FormData();
     fd.set("username", "Admin");
     fd.set("password", "pass");
-    fd.set("totpCode", "");
 
-    await loginAction(fd);
+    const result = await loginAction(fd);
 
-    expect(mocks.redirect).toHaveBeenCalledWith("/");
+    expect(mocks.beginLogin).toHaveBeenCalledWith({
+      username: "Admin",
+      password: "pass",
+    });
+    expect(result).toEqual({ step: "verify_totp" });
   });
 
   it("returns an error message on invalid credentials", async () => {
@@ -91,11 +96,62 @@ describe("loginAction", () => {
     const fd = new FormData();
     fd.set("username", "Admin");
     fd.set("password", "wrong");
-    fd.set("totpCode", "");
 
     const result = await loginAction(fd);
 
     expect(result.error).toBe("Invalid credentials.");
+  });
+});
+
+// ── verifyTotpAction ──────────────────────────────────────────────────────
+
+describe("verifyTotpAction", () => {
+  it("renders password setup after successful TOTP for a temporary password", async () => {
+    mocks.completeTotpLogin.mockResolvedValue({ status: "set_password" });
+    const fd = new FormData();
+    fd.set("code", "123456");
+
+    expect(await verifyTotpAction(fd)).toEqual({ step: "set_password" });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("keeps the verify_totp step after an invalid code", async () => {
+    mocks.completeTotpLogin.mockResolvedValue({
+      status: "invalid",
+      message: "Invalid credentials.",
+    });
+    const fd = new FormData();
+    fd.set("code", "000000");
+
+    const result = await verifyTotpAction(fd);
+
+    expect(result).toEqual({
+      step: "verify_totp",
+      error: "Invalid credentials.",
+    });
+  });
+
+  it("redirects to / on authenticated code", async () => {
+    mocks.completeTotpLogin.mockResolvedValue({ status: "authenticated" });
+    const fd = new FormData();
+    fd.set("code", "123456");
+
+    await verifyTotpAction(fd);
+
+    expect(mocks.redirect).toHaveBeenCalledWith("/");
+  });
+
+  it("returns an expiration error without a step", async () => {
+    mocks.completeTotpLogin.mockResolvedValue({
+      status: "expired",
+      message: "Verification expired.",
+    });
+    const fd = new FormData();
+    fd.set("code", "123456");
+
+    const result = await verifyTotpAction(fd);
+
+    expect(result).toEqual({ error: "Verification expired." });
   });
 });
 
@@ -241,6 +297,21 @@ describe("loginFlowAction dispatch", () => {
 
     expect(mocks.completeTotpEnrollment).toHaveBeenCalled();
     expect(result.error).toBe("Invalid code.");
+  });
+
+  it("dispatches _action=verify_totp to verifyTotpAction", async () => {
+    mocks.completeTotpLogin.mockResolvedValue({
+      status: "invalid",
+      message: "Invalid code.",
+    });
+    const fd = new FormData();
+    fd.set("_action", "verify_totp");
+    fd.set("code", "000000");
+
+    const result = await loginFlowAction({}, fd);
+
+    expect(mocks.completeTotpLogin).toHaveBeenCalledWith("000000");
+    expect(result).toEqual({ step: "verify_totp", error: "Invalid code." });
   });
 
   it("returns an error for unknown _action", async () => {

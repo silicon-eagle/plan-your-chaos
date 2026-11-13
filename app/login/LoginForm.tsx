@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { loginFlowAction, type LoginFormState } from "./actions";
 import { PasswordField } from "./PasswordField";
 import { PasswordSetupForm } from "./PasswordSetupForm";
+import { TotpLoginForm } from "./TotpLoginForm";
 import { TotpSetupForm } from "./TotpSetupForm";
 import styles from "./login.module.css";
 
@@ -16,6 +17,16 @@ export function LoginForm() {
   if (state.step === "set_password") {
     return (
       <PasswordSetupForm
+        action={dispatch}
+        error={state.error}
+        isPending={isPending}
+      />
+    );
+  }
+
+  if (state.step === "verify_totp") {
+    return (
+      <TotpLoginForm
         action={dispatch}
         error={state.error}
         isPending={isPending}
@@ -66,18 +77,6 @@ export function LoginForm() {
         name="password"
         autoComplete="current-password"
       />
-
-      <div className={styles.field}>
-        <label htmlFor="totpCode">Verification Code</label>
-        <input
-          id="totpCode"
-          name="totpCode"
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          className={styles.input}
-        />
-      </div>
 
       <input type="hidden" name="_action" value="login" />
 

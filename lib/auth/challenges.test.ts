@@ -139,6 +139,16 @@ describe("createChallenge", () => {
       expiresAt,
     );
   });
+
+  it("creates a verify_totp challenge", async () => {
+    dbMocks.update.mockReturnValue(updateChain());
+    dbMocks.insert.mockReturnValue(insertChain());
+
+    await createChallenge(1, "verify_totp", baseNow);
+
+    const insertResult = dbMocks.insert.mock.results[0].value;
+    expect(insertResult.values.mock.calls[0][0].stage).toBe("verify_totp");
+  });
 });
 
 // ── findValidChallenge ────────────────────────────────────────────────────
@@ -190,6 +200,16 @@ describe("findValidChallenge", () => {
     expect(
       await findValidChallenge("tok", "set_password", expiresAt),
     ).toBeNull();
+  });
+
+  it("returns a valid verify_totp challenge", async () => {
+    dbMocks.select.mockReturnValue(
+      selectReturning([{ ...validChallengeRow, stage: "verify_totp" }]),
+    );
+
+    const result = await findValidChallenge("tok", "verify_totp", baseNow);
+
+    expect(result?.stage).toBe("verify_totp");
   });
 });
 
