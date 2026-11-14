@@ -13,6 +13,7 @@ const navigationItems = [
   { href: "/", label: "Home" },
   { href: "/calendar", label: "Calendar" },
   { href: "/events", label: "Events" },
+  { href: "/updates", label: "Updates" },
 ];
 
 type HeaderProps = {

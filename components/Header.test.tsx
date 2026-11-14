@@ -45,6 +45,9 @@ describe("Header", () => {
       screen.getByRole("link", { name: "Events" }),
     ).toHaveAttribute("href", "/events");
     expect(
+      screen.getByRole("link", { name: "Updates" }),
+    ).toHaveAttribute("href", "/updates");
+    expect(
       screen.getByRole("button", { name: "Logout" }),
     ).toBeInTheDocument();
   });
@@ -81,6 +84,10 @@ describe("Header", () => {
     expect(
       screen.getAllByRole("navigation", { name: "Main navigation" }),
     ).toHaveLength(2);
+    const mobileNavigation = document.querySelector("#mobile-navigation")!;
+    expect(within(mobileNavigation as HTMLElement).getByRole("link", {
+      name: "Updates",
+    })).toHaveAttribute("href", "/updates");
 
     fireEvent.keyDown(window, { key: "Escape" });
 

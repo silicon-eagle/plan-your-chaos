@@ -120,6 +120,28 @@
   outline-offset: -3px;
 }
 
+.updateFooter {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.badge {
+  flex-shrink: 0;
+  width: calc(16px * var(--pixel-art-scale));
+  height: calc(16px * var(--pixel-art-scale));
+  image-rendering: pixelated;
+}
+
+.updateTimestamp {
+  color: var(--highlight);
+  font-size: 12px;
+  text-align: left;
+}
+
 .stripe {
   width: 4px;
   height: 100%;
